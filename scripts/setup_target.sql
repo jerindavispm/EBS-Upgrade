@@ -198,26 +198,42 @@ ALTER TABLE risks         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delay_reasons ENABLE ROW LEVEL SECURITY;
 
 -- Public read (anyone can view project website)
+DROP POLICY IF EXISTS "public_read_projects" ON projects;
 CREATE POLICY "public_read_projects"      ON projects      FOR SELECT USING (true);
+DROP POLICY IF EXISTS "public_read_milestones" ON milestones;
 CREATE POLICY "public_read_milestones"    ON milestones    FOR SELECT USING (true);
+DROP POLICY IF EXISTS "public_read_risks" ON risks;
 CREATE POLICY "public_read_risks"         ON risks         FOR SELECT USING (true);
+DROP POLICY IF EXISTS "public_read_delay_reasons" ON delay_reasons;
 CREATE POLICY "public_read_delay_reasons" ON delay_reasons FOR SELECT USING (true);
 
 -- Only authenticated users (admins) can write
+DROP POLICY IF EXISTS "admin_insert_projects" ON projects;
 CREATE POLICY "admin_insert_projects" ON projects FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_update_projects" ON projects;
 CREATE POLICY "admin_update_projects" ON projects FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_delete_projects" ON projects;
 CREATE POLICY "admin_delete_projects" ON projects FOR DELETE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "admin_insert_milestones" ON milestones;
 CREATE POLICY "admin_insert_milestones" ON milestones FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_update_milestones" ON milestones;
 CREATE POLICY "admin_update_milestones" ON milestones FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_delete_milestones" ON milestones;
 CREATE POLICY "admin_delete_milestones" ON milestones FOR DELETE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "admin_insert_risks" ON risks;
 CREATE POLICY "admin_insert_risks" ON risks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_update_risks" ON risks;
 CREATE POLICY "admin_update_risks" ON risks FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_delete_risks" ON risks;
 CREATE POLICY "admin_delete_risks" ON risks FOR DELETE USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "admin_insert_delay_reasons" ON delay_reasons;
 CREATE POLICY "admin_insert_delay_reasons" ON delay_reasons FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_update_delay_reasons" ON delay_reasons;
 CREATE POLICY "admin_update_delay_reasons" ON delay_reasons FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "admin_delete_delay_reasons" ON delay_reasons;
 CREATE POLICY "admin_delete_delay_reasons" ON delay_reasons FOR DELETE USING (auth.role() = 'authenticated');
 
 
@@ -377,7 +393,9 @@ CREATE TABLE IF NOT EXISTS landing_page_content (
 INSERT INTO landing_page_content (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 ALTER TABLE landing_page_content ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "public_read_landing" ON landing_page_content;
+DROP POLICY IF EXISTS "public_read_landing" ON landing_page_content;
 CREATE POLICY "public_read_landing" ON landing_page_content FOR SELECT USING (true);
+DROP POLICY IF EXISTS "admin_update_landing" ON landing_page_content;
 DROP POLICY IF EXISTS "admin_update_landing" ON landing_page_content;
 CREATE POLICY "admin_update_landing" ON landing_page_content FOR UPDATE USING (auth.role() = 'authenticated');
 
@@ -480,9 +498,11 @@ INSERT INTO landing_page_content (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 ALTER TABLE landing_page_content ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "public_read_landing" ON landing_page_content;
+DROP POLICY IF EXISTS "public_read_landing" ON landing_page_content;
 CREATE POLICY "public_read_landing" ON landing_page_content
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "admin_update_landing" ON landing_page_content;
 DROP POLICY IF EXISTS "admin_update_landing" ON landing_page_content;
 CREATE POLICY "admin_update_landing" ON landing_page_content
   FOR UPDATE USING (auth.role() = 'authenticated');
@@ -775,16 +795,20 @@ CREATE INDEX IF NOT EXISTS idx_delay_reasons_project ON delay_reasons(project_id
 ALTER TABLE delay_reasons ENABLE ROW LEVEL SECURITY;
 
 -- Anyone (anon + authenticated) can read
+DROP POLICY IF EXISTS "delay_reasons_select_all" ON delay_reasons;
 CREATE POLICY "delay_reasons_select_all" ON delay_reasons
   FOR SELECT USING (true);
 
 -- Only logged-in users (admins in this app) can write
+DROP POLICY IF EXISTS "delay_reasons_insert_auth" ON delay_reasons;
 CREATE POLICY "delay_reasons_insert_auth" ON delay_reasons
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "delay_reasons_update_auth" ON delay_reasons;
 CREATE POLICY "delay_reasons_update_auth" ON delay_reasons
   FOR UPDATE USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "delay_reasons_delete_auth" ON delay_reasons;
 CREATE POLICY "delay_reasons_delete_auth" ON delay_reasons
   FOR DELETE USING (auth.role() = 'authenticated');
 
