@@ -2,13 +2,12 @@ import React, { Fragment, useEffect, useState, useCallback, useRef, useLayoutEff
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronDown, ChevronUp, ArrowRight, Users, User,
-  Sparkles, Target, Mail, Rocket, Sun, Moon,
+  Sparkles, Target, Mail, Rocket, Sun, Moon, Cloud,
 } from 'lucide-react'
 import { supabase, supabasePublic } from '../supabaseClient'
 import { EditableText, EditableImage } from './Editable'
 import { useInView } from '../hooks/useInView'
 
-const ParticleNetwork = React.lazy(() => import('./ParticleNetwork'))
 const BusinessCard    = React.lazy(() => import('./BusinessCard'))
 
 // Scroll-reveal wrapper — fades + slides up when scrolled into view.
@@ -757,14 +756,35 @@ export default function LandingPage({ isAdmin }) {
       <section
         data-hero
         className="relative overflow-hidden text-white"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 60% at 50% 30%, rgba(212,184,123,0.18), transparent 65%),
-            radial-gradient(ellipse 90% 80% at 50% 110%, rgba(138,99,40,0.15), transparent 60%),
-            linear-gradient(180deg, #0c0a08 0%, #08070a 100%)
-          `,
-        }}
+        style={{ background: '#08070a' }}
       >
+        {/* Looping background video — bottom layer. All other absolutely-
+            positioned hero overlays (pools, grid, particles, content) come
+            after in the DOM, so they paint on top without explicit z-index.
+            autoPlay+muted+playsInline is required for autoplay in modern
+            browsers; preload="auto" buffers the file so the seam at the
+            loop point doesn't stutter on first wrap. */}
+        <video
+          src="./mp__.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          aria-hidden="true"
+          tabIndex={-1}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
+        />
+        {/* Subtle dark vignette over the video so the gold overlays + white
+            text below remain legible regardless of which frame is showing. */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0,0,0,0.30), transparent 65%), linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%)',
+          }}
+        />
         {/* Top nav — three in-page anchors. Pinned at z-50 with a soft
             gradient backdrop so it always reads above the particle
             animation and ambient light pools below. Offset down from the
@@ -827,23 +847,92 @@ export default function LandingPage({ isAdmin }) {
           }}
         />
 
-        {/* Particle network — prominent ambient animation across the hero */}
-        <div className="absolute inset-0 opacity-95 pointer-events-none">
-          <Suspense fallback={null}>
-            <ParticleNetwork />
-          </Suspense>
+        {/* Glassmorphism capability chip — left side, vertically centred.
+            Exact size 8cm × 2.5cm (302px × 94px at 96dpi) per the user spec.
+            Hidden below lg so it doesn't crowd the centred content on small
+            screens. */}
+        <div
+          className="hidden lg:flex items-center absolute left-8 xl:left-12 top-1/2 -translate-y-1/2 z-30"
+          style={{
+            width: '302px',
+            height: '94px',
+            padding: '12px',
+            gap: '14px',
+            background: 'rgba(245,230,194,0.04)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            border: '1px solid rgba(212,184,123,0.28)',
+            borderRadius: '18px',
+            boxShadow:
+              'inset 0 1px 0 0 rgba(245,230,194,0.06), 0 12px 30px -12px rgba(0,0,0,0.65)',
+          }}
+        >
+          <div
+            className="grid place-items-center shrink-0"
+            style={{
+              width: '70px',
+              height: '70px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(245,230,194,0.10), rgba(202,161,90,0.06))',
+              border: '1px solid rgba(212,184,123,0.30)',
+              color: '#fff8e7',
+            }}
+          >
+            <Cloud size={30} strokeWidth={1.8} />
+          </div>
+          <div className="flex flex-col leading-none min-w-0">
+            <span
+              style={{
+                fontFamily: "'Space Grotesk', system-ui, sans-serif",
+                fontSize: '17px',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: '#fff8e7',
+                lineHeight: 1,
+              }}
+            >
+              CLOUD
+            </span>
+            <span
+              style={{
+                fontFamily: "'Space Grotesk', system-ui, sans-serif",
+                fontSize: '17px',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: '#e6cf94',
+                lineHeight: 1,
+                marginTop: '3px',
+              }}
+            >
+              SOLUTIONS
+            </span>
+            <span
+              style={{
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: '10.5px',
+                fontWeight: 500,
+                color: 'rgba(245,230,194,0.55)',
+                lineHeight: 1.2,
+                marginTop: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Scalable. Secure. Reliable.
+            </span>
+          </div>
         </div>
 
         <div className="relative max-w-6xl mx-auto px-6 lg:px-8 py-20 lg:py-28 flex flex-col items-center text-center">
-          {/* Eyebrow rule + label */}
-          <div className="flex items-center gap-3 mb-10 text-white/60">
-            <span className="h-px w-10 bg-white/30" />
+          {/* Eyebrow rule + label — champagne gold to match the luxe theme */}
+          <div className="flex items-center gap-3 mb-10" style={{ color: '#e6cf94' }}>
+            <span className="h-px w-10" style={{ background: 'rgba(212,184,123,0.55)' }} />
             <span className="text-[11px] tracking-[0.35em] uppercase font-semibold">EBS Department</span>
-            <span className="h-px w-10 bg-white/30" />
+            <span className="h-px w-10" style={{ background: 'rgba(212,184,123,0.55)' }} />
           </div>
 
-          {/* Union Trading Co. wordmark — white-on-transparent, large, centered */}
-          <div className="relative flex items-center justify-center mb-12 w-full max-w-5xl">
+          {/* EBS hero wordmark — white-on-transparent, large, centered.
+              mt-[38px] ≈ 1cm push-down requested by the user. */}
+          <div className="relative mx-auto flex items-center justify-center mt-[38px] mb-12 w-full max-w-5xl">
             <div
               className="absolute inset-0 rounded-full pointer-events-none"
               style={{
@@ -852,9 +941,9 @@ export default function LandingPage({ isAdmin }) {
               }}
             />
             <img
-              src="./union-trading-logo-white.png"
-              alt="Union Trading Co."
-              className="relative w-full max-w-[860px] h-auto object-contain drop-shadow-[0_8px_60px_rgba(255,255,255,0.2)]"
+              src="./ebs-hero-logo.png"
+              alt="EBS · Enterprise Business Solutions · Driving Digital Excellence"
+              className="relative block mx-auto w-full max-w-[860px] h-auto object-contain drop-shadow-[0_8px_60px_rgba(255,255,255,0.2)]"
             />
           </div>
 

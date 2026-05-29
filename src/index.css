@@ -2195,6 +2195,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 /* Center wordmark — the asset is white-on-transparent; recolor to deep
    champagne via filter so it reads on cream without swapping the src. */
+.landing-light [data-hero] img[src*="ebs-hero-logo"],
 .landing-light [data-hero] img[src*="union-trading-logo-white"] {
   filter: brightness(0) saturate(100%) invert(35%) sepia(35%) saturate(900%) hue-rotate(8deg) brightness(95%);
 }
