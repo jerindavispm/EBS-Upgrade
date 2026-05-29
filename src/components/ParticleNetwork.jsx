@@ -57,29 +57,32 @@ function Nodes() {
     }
 
     // rebuild connection lines per-frame (O(n²) but n=90 is fine)
+    // Saturated gold tones modulated by distance — reads clearly gold, not silver
     let lineIdx = 0
     for (let i = 0; i < NODE_COUNT; i++) {
       for (let j = i + 1; j < NODE_COUNT; j++) {
         const d = nodes[i].pos.distanceTo(nodes[j].pos)
         if (d < CONNECT_DIST) {
-          const alpha = 1 - d / CONNECT_DIST  // fade with distance
-          // segment start
-          // Monochrome white/silver line — alpha fades with distance
-          const g = 0.75 + alpha * 0.25
+          const alpha = 1 - d / CONNECT_DIST  // 0..1, fades with distance
+          const intensity = 0.70 + alpha * 0.30
+          // Saturated gold ≈ #f2b859 — R high, G mid, B low.
+          const r = intensity * 0.95
+          const g = intensity * 0.72
+          const b = intensity * 0.35
           linePositions[lineIdx * 3 + 0] = nodes[i].pos.x
           linePositions[lineIdx * 3 + 1] = nodes[i].pos.y
           linePositions[lineIdx * 3 + 2] = nodes[i].pos.z
-          lineColors[lineIdx * 3 + 0] = g
+          lineColors[lineIdx * 3 + 0] = r
           lineColors[lineIdx * 3 + 1] = g
-          lineColors[lineIdx * 3 + 2] = g
+          lineColors[lineIdx * 3 + 2] = b
           lineIdx++
           // segment end
           linePositions[lineIdx * 3 + 0] = nodes[j].pos.x
           linePositions[lineIdx * 3 + 1] = nodes[j].pos.y
           linePositions[lineIdx * 3 + 2] = nodes[j].pos.z
-          lineColors[lineIdx * 3 + 0] = g
+          lineColors[lineIdx * 3 + 0] = r
           lineColors[lineIdx * 3 + 1] = g
-          lineColors[lineIdx * 3 + 2] = g
+          lineColors[lineIdx * 3 + 2] = b
           lineIdx++
         }
       }
@@ -109,11 +112,11 @@ function Nodes() {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.11}
-          color="#ffffff"
+          size={0.18}
+          color="#daab68"
           sizeAttenuation
           transparent
-          opacity={0.95}
+          opacity={1}
           depthWrite={false}
         />
       </points>
@@ -132,7 +135,7 @@ function Nodes() {
             itemSize={3}
           />
         </bufferGeometry>
-        <lineBasicMaterial vertexColors transparent opacity={0.45} depthWrite={false} />
+        <lineBasicMaterial vertexColors transparent opacity={0.7} depthWrite={false} />
       </lineSegments>
     </group>
   )
@@ -145,8 +148,8 @@ function StaticFallback() {
       <svg viewBox="0 0 400 400" className="w-full h-full max-w-md opacity-70">
         <defs>
           <radialGradient id="rg" cx="50%" cy="50%">
-            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.1" />
+            <stop offset="0%" stopColor="#e6cf94" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#caa15a" stopOpacity="0.1" />
           </radialGradient>
         </defs>
         {Array.from({ length: 30 }).map((_, i) => {
@@ -154,7 +157,7 @@ function StaticFallback() {
           const r = 120 + (i % 3) * 30
           const x = 200 + Math.cos(a) * r
           const y = 200 + Math.sin(a) * r
-          return <circle key={i} cx={x} cy={y} r={3} fill="#60a5fa" />
+          return <circle key={i} cx={x} cy={y} r={3} fill="#daab68" />
         })}
         <circle cx="200" cy="200" r="160" fill="url(#rg)" />
       </svg>
