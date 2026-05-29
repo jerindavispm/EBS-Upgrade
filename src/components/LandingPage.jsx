@@ -9,6 +9,7 @@ import { EditableText, EditableImage } from './Editable'
 import { useInView } from '../hooks/useInView'
 
 const ParticleNetwork = React.lazy(() => import('./ParticleNetwork'))
+const BusinessCard    = React.lazy(() => import('./BusinessCard'))
 
 // Scroll-reveal wrapper — fades + slides up when scrolled into view.
 // Stagger lists by passing increasing `delay` (ms).
@@ -168,7 +169,7 @@ function VerticalLimelightNav({ items, activeIndex, onChange, className = '' }) 
 // Floating right-edge dock — uses VerticalLimelightNav for the 3 in-page
 // anchors and a separate theme-toggle button below a gold divider. Hidden
 // until the hero is scrolled past.
-function FloatingSideDock({ isDark, onToggleTheme, scrollToSection }) {
+function FloatingSideDock({ isDark, onToggleTheme, scrollToSection, onOpenContact }) {
   const [visible, setVisible] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   // Prevents the IntersectionObserver from bouncing the limelight through
@@ -263,6 +264,17 @@ function FloatingSideDock({ isDark, onToggleTheme, scrollToSection }) {
           activeIndex={activeIndex}
           onChange={(i) => setActiveIndex(i)}
         />
+        <div className="luxe-dock-divider" />
+        {/* Contact entry — opens the business card modal */}
+        <button
+          type="button"
+          onClick={onOpenContact}
+          className="luxe-dock-item"
+          aria-label="Open contact card"
+        >
+          <Mail size={16} style={{ color: 'rgba(245,230,194,0.7)' }} />
+          <span className="luxe-dock-label">Contact</span>
+        </button>
         <div className="luxe-dock-divider" />
         <button
           type="button"
@@ -619,6 +631,9 @@ export default function LandingPage({ isAdmin }) {
   // Theme state for the floating dock toggle. Flipping it adds a class on the
   // landing root which serves as a hook for any light-mode CSS overrides.
   const [lightMode, setLightMode] = useState(false)
+  // Business card modal open state. Triggered from the floating dock entry
+  // and the top hero nav strip; card content is pulled from the team lead.
+  const [cardOpen, setCardOpen] = useState(false)
 
   // Click-navigation (floating dock + limelight nav): scroll so the target's
   // vertical CENTER lands at the viewport's vertical CENTER. Crucially we
@@ -728,7 +743,15 @@ export default function LandingPage({ isAdmin }) {
       isDark={!lightMode}
       onToggleTheme={() => setLightMode(v => !v)}
       scrollToSection={scrollToSectionWithCompletion}
+      onOpenContact={() => setCardOpen(true)}
     />
+    <Suspense fallback={null}>
+      <BusinessCard
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        lead={team.find(m => m.is_team_lead)}
+      />
+    </Suspense>
     <div className="-m-4 sm:-m-6 lg:-m-8">
       {/* ─── Hero ────────────────────────────────────────────── */}
       <section
@@ -763,12 +786,13 @@ export default function LandingPage({ isAdmin }) {
             { id: 'moonshot', label: 'Moonshot Projects' },
             { id: 'vision',   label: 'Our Vision' },
             { id: 'team',     label: 'Our Team' },
+            { id: 'contact',  label: 'Contact', isContact: true },
           ].map((item, i) => (
             <Fragment key={item.id}>
               {i > 0 && <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />}
               <button
                 type="button"
-                onClick={() => scrollToSectionWithCompletion(item.id)}
+                onClick={() => item.isContact ? setCardOpen(true) : scrollToSectionWithCompletion(item.id)}
                 className="pointer-events-auto text-[10px] sm:text-xs luxe-nav-item"
               >
                 {item.label}

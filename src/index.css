@@ -1827,6 +1827,191 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .app-dark .text-brand-600 { color: #E6C978 !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   BUSINESS CARD MODAL — luxe gold port
+   ═══════════════════════════════════════════════════════════════════════════
+   Cursor-tilt modal with sheen / aurora / hairline grid. Dark surface is a
+   warm-black gold gradient; light-mode mirror lives under .landing-light at
+   the bottom of this file. */
+
+.luxe-card-backdrop {
+  background: rgba(8, 7, 6, 0.78);
+  backdrop-filter: blur(12px);
+}
+.luxe-card-modal {
+  box-shadow: 0 30px 120px -20px rgba(212, 184, 123, 0.55);
+}
+.luxe-card-surface {
+  background: linear-gradient(135deg, #1a1208 0%, #0c0a08 55%, #08070a 100%);
+  color: rgba(255, 245, 230, 0.85);
+}
+.luxe-card-sheen {
+  mix-blend-mode: soft-light;
+  opacity: 0.65;
+}
+.luxe-card-aurora-1 { background: radial-gradient(circle, rgba(229, 207, 148, 0.45), transparent 70%); }
+.luxe-card-aurora-2 { background: radial-gradient(circle, rgba(202, 161, 90, 0.32), transparent 70%); }
+.luxe-card-border  { border: 1px solid rgba(212, 184, 123, 0.18); }
+.luxe-card-grid {
+  background-image:
+    linear-gradient(rgba(212, 184, 123, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 184, 123, 0.5) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.10;
+}
+
+/* Avatar — gold gradient ring if no image, else photo behind a gold border */
+.luxe-card-avatar {
+  background: linear-gradient(135deg, #f5e6c2 0%, #e6cf94 50%, #caa15a 100%);
+  color: #0c0a08;
+  box-shadow: 0 6px 18px -4px rgba(229, 207, 148, 0.55);
+  border: 1px solid rgba(245, 230, 194, 0.55);
+}
+
+.luxe-card-eyebrow {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 230, 194, 0.55);
+}
+
+.luxe-card-close {
+  border: 1px solid rgba(212, 184, 123, 0.22);
+  background: rgba(212, 184, 123, 0.06);
+  color: rgba(245, 230, 194, 0.7);
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+.luxe-card-close:hover {
+  background: rgba(212, 184, 123, 0.14);
+  color: #f5e6c2;
+  border-color: rgba(229, 207, 148, 0.5);
+}
+
+.luxe-card-location-eyebrow {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 230, 194, 0.55);
+}
+.luxe-card-name {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 34px;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  color: #fff8e7;
+}
+@media (min-width: 640px) { .luxe-card-name { font-size: 40px; } }
+.luxe-card-name-accent {
+  background: linear-gradient(180deg, #f5e6c2 0%, #e6cf94 50%, #caa15a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.luxe-card-role {
+  font-size: 13.5px;
+  color: rgba(245, 230, 194, 0.65);
+}
+
+/* Rows — icon + label + value + optional copy chip */
+.luxe-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(212, 184, 123, 0.10);
+}
+.luxe-card-row:last-child { border-bottom: 0; }
+.luxe-card-row-icon {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  width: 32px;
+  border-radius: 10px;
+  background: rgba(212, 184, 123, 0.08);
+  border: 1px solid rgba(212, 184, 123, 0.18);
+  color: rgba(245, 230, 194, 0.85);
+  flex-shrink: 0;
+}
+.luxe-card-row-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 230, 194, 0.5);
+}
+.luxe-card-row-value,
+.luxe-card-row-value-link {
+  display: block;
+  font-size: 14px;
+  color: #fff8e7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.luxe-card-row-value-link {
+  transition: color 0.25s ease;
+}
+.luxe-card-row-value-link:hover { color: #f5e6c2; text-shadow: 0 0 12px rgba(229, 207, 148, 0.45); }
+
+/* Copy chip — small bordered pill that briefly swaps to "Copied" */
+.luxe-card-copy-chip {
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: 1px solid rgba(212, 184, 123, 0.20);
+  background: rgba(212, 184, 123, 0.06);
+  color: rgba(245, 230, 194, 0.7);
+  cursor: pointer;
+  transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.luxe-card-copy-chip:hover {
+  color: #f5e6c2;
+  border-color: rgba(229, 207, 148, 0.45);
+  background: rgba(212, 184, 123, 0.12);
+}
+
+/* Footer — "Open to Inquiries" pulse + timezone */
+.luxe-card-available {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: 1px solid rgba(229, 207, 148, 0.30);
+  background: rgba(229, 207, 148, 0.10);
+  color: #f5e6c2;
+}
+.luxe-card-pulse     { background: #e6cf94; }
+.luxe-card-pulse-dot { background: #e6cf94; }
+.luxe-card-zone {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  color: rgba(245, 230, 194, 0.5);
+  letter-spacing: 0.04em;
+}
+
+/* Hint line under the card */
+.luxe-card-hint {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(245, 230, 194, 0.4);
+}
+.luxe-card-hint-key { color: rgba(245, 230, 194, 0.75); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
    LIGHT MODE — landing-only override layer
    ═══════════════════════════════════════════════════════════════════════════
    Activated by the .landing-light class on the landing root (toggled from
@@ -2028,3 +2213,76 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   mix-blend-mode: multiply;
   opacity: 0.55;
 }
+
+/* ── Business card — light variant ─────────────────────────────────────── */
+.landing-light .luxe-card-backdrop {
+  background: rgba(122, 90, 38, 0.18);
+  backdrop-filter: blur(12px);
+}
+.landing-light .luxe-card-modal {
+  box-shadow: 0 30px 120px -20px rgba(154, 115, 53, 0.45);
+}
+.landing-light .luxe-card-surface {
+  background: linear-gradient(135deg, #fdfaf2 0%, #f8f0db 55%, #f1e6c8 100%);
+  color: #3a2f1d;
+}
+.landing-light .luxe-card-sheen { mix-blend-mode: overlay; opacity: 0.55; }
+.landing-light .luxe-card-aurora-1 { background: radial-gradient(circle, rgba(154, 115, 53, 0.28), transparent 70%); }
+.landing-light .luxe-card-aurora-2 { background: radial-gradient(circle, rgba(122, 90, 38, 0.18), transparent 70%); }
+.landing-light .luxe-card-border { border-color: rgba(154, 115, 53, 0.30); }
+.landing-light .luxe-card-grid {
+  background-image:
+    linear-gradient(rgba(154, 115, 53, 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154, 115, 53, 0.6) 1px, transparent 1px);
+  opacity: 0.08;
+}
+.landing-light .luxe-card-eyebrow { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-card-close {
+  border-color: rgba(154, 115, 53, 0.32);
+  background: rgba(154, 115, 53, 0.06);
+  color: #5f4419;
+}
+.landing-light .luxe-card-close:hover {
+  background: rgba(154, 115, 53, 0.14);
+  color: #3a2f1d;
+  border-color: rgba(154, 115, 53, 0.55);
+}
+.landing-light .luxe-card-location-eyebrow { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-card-name { color: #3a2f1d; }
+.landing-light .luxe-card-name-accent {
+  background: linear-gradient(180deg, #9a7335 0%, #7a5a26 55%, #5f4419 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.landing-light .luxe-card-role { color: rgba(58, 47, 29, 0.7); }
+.landing-light .luxe-card-row { border-bottom-color: rgba(154, 115, 53, 0.18); }
+.landing-light .luxe-card-row-icon {
+  background: rgba(154, 115, 53, 0.10);
+  border-color: rgba(154, 115, 53, 0.28);
+  color: #5f4419;
+}
+.landing-light .luxe-card-row-label { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-card-row-value,
+.landing-light .luxe-card-row-value-link { color: #3a2f1d; }
+.landing-light .luxe-card-row-value-link:hover { color: #5f4419; }
+.landing-light .luxe-card-copy-chip {
+  border-color: rgba(154, 115, 53, 0.30);
+  background: rgba(154, 115, 53, 0.06);
+  color: #5f4419;
+}
+.landing-light .luxe-card-copy-chip:hover {
+  color: #3a2f1d;
+  border-color: rgba(154, 115, 53, 0.55);
+  background: rgba(154, 115, 53, 0.14);
+}
+.landing-light .luxe-card-available {
+  border-color: rgba(154, 115, 53, 0.4);
+  background: rgba(154, 115, 53, 0.12);
+  color: #5f4419;
+}
+.landing-light .luxe-card-pulse,
+.landing-light .luxe-card-pulse-dot { background: #9a7335; }
+.landing-light .luxe-card-zone { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-card-hint { color: rgba(58, 47, 29, 0.45); }
+.landing-light .luxe-card-hint-key { color: #5f4419; }
