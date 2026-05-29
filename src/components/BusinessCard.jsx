@@ -111,7 +111,7 @@ export default function BusinessCard({ open, onClose, lead }) {
 
   // Placeholders — user will provide real values later.
   const EMAIL    = 'ebs@utc.com.kw'
-  const PHONE    = '+965 0000 0000'
+  const PHONE    = '+965 94074024'
   const COMPANY  = 'Union Trading Co.'
   const LOCATION = 'Kuwait'
 
