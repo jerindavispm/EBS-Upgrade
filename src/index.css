@@ -1825,3 +1825,206 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .app-dark .bg-brand-50,
 .app-dark .text-brand-700,
 .app-dark .text-brand-600 { color: #E6C978 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE — landing-only override layer
+   ═══════════════════════════════════════════════════════════════════════════
+   Activated by the .landing-light class on the landing root (toggled from
+   the dock's Sun/Moon button). Inverts the warm-black + champagne palette
+   to a cream + deeper-champagne palette so the gold accents still feel
+   premium against light. Scoped strictly to .landing-light descendants so
+   the rest of the app (dashboards, tracker) is unaffected.
+
+   Colour key (light):
+     bg base       #fdfaf2 → #f5edd9   warm cream linen, slight gradient
+     ink           #3a2f1d              deep coffee, high contrast on cream
+     ink-muted     rgba(58,47,29,0.62)
+     ink-faint     rgba(58,47,29,0.42)
+     accent        #9a7335              deeper champagne (legible on cream)
+     accent-soft   #7a5a26              for hover / pill text
+     accent-deep   #5f4419              for active / heading low-stop
+*/
+
+/* ── Page base ─────────────────────────────────────────────────────────── */
+.landing-light { background: #fbf7ee; color: #3a2f1d; }
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+.landing-light .luxe-section {
+  color: #3a2f1d;
+  background:
+    var(--rad-1, radial-gradient(70% 50% at 50% 0%, rgba(154,115,53,0.10), transparent 60%)),
+    var(--rad-2, radial-gradient(60% 40% at 50% 100%, rgba(122,90,38,0.07), transparent 60%)),
+    linear-gradient(180deg, #fdfaf2 0%, #f5edd9 100%);
+}
+.landing-light .luxe-section-about    { --rad-1: radial-gradient(60% 80% at 0% 50%,   rgba(154,115,53,0.10), transparent 55%);
+                                         --rad-2: radial-gradient(60% 80% at 100% 50%, rgba(122,90,38,0.07), transparent 60%); }
+.landing-light .luxe-section-moonshot { --rad-1: radial-gradient(95% 55% at 50% -8%,  rgba(154,115,53,0.14), transparent 62%);
+                                         --rad-2: radial-gradient(60% 35% at 50% 50%, rgba(154,115,53,0.05), transparent 70%); }
+.landing-light .luxe-section-vision   { --rad-1: radial-gradient(95% 55% at 50% 108%, rgba(154,115,53,0.13), transparent 62%);
+                                         --rad-2: radial-gradient(60% 35% at 50% 45%, rgba(154,115,53,0.05), transparent 70%); }
+.landing-light .luxe-section-team     { --rad-1: radial-gradient(70% 55% at 50% 30%,  rgba(154,115,53,0.11), transparent 65%);
+                                         --rad-2: radial-gradient(60% 40% at 50% 70%, rgba(122,90,38,0.06), transparent 65%); }
+
+/* ── Typography ────────────────────────────────────────────────────────── */
+.landing-light .luxe-heading {
+  background: linear-gradient(180deg, #9a7335 0%, #7a5a26 55%, #5f4419 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.landing-light .luxe-body   { color: #3a2f1d; }
+.landing-light .luxe-muted  { color: rgba(58,47,29,0.62); }
+.landing-light .luxe-faint  { color: rgba(58,47,29,0.42); }
+.landing-light .luxe-accent { color: #9a7335; }
+
+/* ── Pills / cards / dividers ──────────────────────────────────────────── */
+.landing-light .luxe-pill {
+  background: rgba(154,115,53,0.08);
+  border-color: rgba(154,115,53,0.35);
+  color: #7a5a26;
+}
+.landing-light .luxe-card {
+  background: rgba(255,255,255,0.62);
+  border-color: rgba(154,115,53,0.28);
+  box-shadow:
+    0 8px 32px 0 rgba(122,90,38,0.10),
+    inset 0 1px 0 0 rgba(255,255,255,0.7);
+}
+.landing-light .luxe-card-hover:hover {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(154,115,53,0.45);
+}
+.landing-light .luxe-divider { background: rgba(154,115,53,0.30); }
+.landing-light .luxe-rim-top,
+.landing-light .luxe-rim-bottom {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(154,115,53,0.15) 12%,
+    rgba(154,115,53,0.45) 50%,
+    rgba(154,115,53,0.15) 88%,
+    transparent 100%);
+}
+.landing-light .luxe-nav-dot { background: rgba(154,115,53,0.55); }
+
+/* ── Floating dock ─────────────────────────────────────────────────────── */
+.landing-light .luxe-dock {
+  background: rgba(255,250,238,0.85);
+  border-color: rgba(154,115,53,0.32);
+  box-shadow:
+    0 12px 32px -8px rgba(122,90,38,0.25),
+    inset 0 1px 0 0 rgba(255,255,255,0.7);
+}
+.landing-light .luxe-dock-item { color: rgba(58,47,29,0.6); }
+.landing-light .luxe-dock-item:hover {
+  background: rgba(154,115,53,0.12);
+  color: #5f4419;
+  text-shadow: 0 0 8px rgba(154,115,53,0.35);
+}
+.landing-light .luxe-dock-item.is-active {
+  color: #5f4419;
+  background: rgba(154,115,53,0.15);
+}
+.landing-light .luxe-dock-divider {
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(154,115,53,0.15) 12%, rgba(154,115,53,0.42) 50%, rgba(154,115,53,0.15) 88%, transparent 100%);
+}
+
+/* ── Top hero nav strip + ghost / outline buttons ──────────────────────── */
+.landing-light .luxe-nav-item { color: #3a2f1d; }
+.landing-light .luxe-nav-item:hover {
+  color: #5f4419;
+  text-shadow: 0 0 12px rgba(154,115,53,0.35);
+}
+.landing-light .luxe-button {
+  background: rgba(154,115,53,0.06);
+  border-color: rgba(154,115,53,0.36);
+  color: #5f4419;
+}
+.landing-light .luxe-button:hover {
+  background: rgba(154,115,53,0.14);
+  border-color: rgba(154,115,53,0.6);
+  color: #3a2f1d;
+  box-shadow:
+    0 10px 28px -8px rgba(154,115,53,0.35),
+    0 0 0 1px rgba(154,115,53,0.18);
+}
+.landing-light .luxe-button-ghost { color: rgba(58,47,29,0.55); }
+.landing-light .luxe-button-ghost:hover {
+  color: #5f4419;
+  background: rgba(154,115,53,0.10);
+  border-color: rgba(154,115,53,0.32);
+}
+/* The pill button (.luxe-button-pill) stays gold — works on both bgs. */
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.landing-light .landing-footer-luxe {
+  background:
+    radial-gradient(80% 50% at 0% 100%, rgba(154,115,53,0.10), transparent 55%),
+    radial-gradient(60% 40% at 100% 0%, rgba(122,90,38,0.07), transparent 60%),
+    linear-gradient(180deg, #fdfaf2 0%, #f4ecd9 100%);
+  color: #3a2f1d;
+}
+.landing-light .landing-footer-luxe::before {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(154,115,53,0.18) 12%,
+    rgba(154,115,53,0.44) 50%,
+    rgba(154,115,53,0.18) 88%,
+    transparent 100%);
+}
+.landing-light .landing-footer-eyebrow { color: #7a5a26; }
+.landing-light .landing-footer-email   { color: #3a2f1d; }
+.landing-light .landing-footer-email:hover {
+  color: #5f4419;
+  text-shadow: 0 0 12px rgba(154,115,53,0.35);
+}
+.landing-light .landing-footer-mail-icon { color: #9a7335; }
+.landing-light .landing-footer-caption   { color: rgba(58,47,29,0.62); }
+.landing-light .landing-footer-baseline {
+  border-top-color: rgba(154,115,53,0.25);
+  color: rgba(58,47,29,0.48);
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────
+   Hero gradient + decorations are set inline in JSX, so we override the
+   key surfaces with !important. Ambient blur pools + checked grid are
+   suppressed because they were dark-mode glow ornaments; on cream the
+   page reads cleaner without them. */
+.landing-light [data-hero] {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(154,115,53,0.18), transparent 65%),
+    radial-gradient(ellipse 90% 80% at 50% 110%, rgba(122,90,38,0.13), transparent 60%),
+    linear-gradient(180deg, #fdfaf2 0%, #f5edd9 100%) !important;
+  color: #3a2f1d;
+}
+.landing-light [data-hero] > nav {
+  background: linear-gradient(180deg, rgba(253,250,242,0.85) 0%, rgba(253,250,242,0.35) 60%, rgba(253,250,242,0) 100%) !important;
+}
+/* Eyebrow rule + label (Tailwind opacity utilities on inline elements) */
+.landing-light [data-hero] .text-white\/60 { color: rgba(58,47,29,0.62) !important; }
+.landing-light [data-hero] .text-white\/65 { color: rgba(58,47,29,0.7)  !important; }
+.landing-light [data-hero] .text-white\/35 { color: rgba(58,47,29,0.45) !important; }
+.landing-light [data-hero] .bg-white\/30   { background: rgba(154,115,53,0.4)  !important; }
+.landing-light [data-hero] .bg-white\/40   { background: rgba(154,115,53,0.45) !important; }
+.landing-light [data-hero] h1              { color: #3a2f1d; }
+
+/* Center wordmark — the asset is white-on-transparent; recolor to deep
+   champagne via filter so it reads on cream without swapping the src. */
+.landing-light [data-hero] img[src*="union-trading-logo-white"] {
+  filter: brightness(0) saturate(100%) invert(35%) sepia(35%) saturate(900%) hue-rotate(8deg) brightness(95%);
+}
+/* Corner watermark — same treatment + lower opacity to keep it subtle. */
+.landing-light [data-hero] img[src*="hero-corner-logo"] {
+  filter: brightness(0) saturate(100%) invert(35%) sepia(35%) saturate(900%) hue-rotate(8deg) brightness(95%);
+  opacity: 0.4;
+}
+/* Ambient blur pools — hide (they were glow for the dark hero). */
+.landing-light [data-hero] .blur-3xl { opacity: 0; }
+/* Checked gold grid — hide (too noisy on cream). */
+.landing-light [data-hero] [style*="64px 64px"] { opacity: 0; }
+/* Particle network — blend into the cream so the gold particles read
+   as darker pinpoints instead of fading away. */
+.landing-light [data-hero] .opacity-95 {
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
