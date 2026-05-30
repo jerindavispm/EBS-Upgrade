@@ -2,7 +2,9 @@ import React, { Fragment, useEffect, useState, useCallback, useRef, useLayoutEff
 import { useNavigate } from 'react-router-dom'
 import {
   ChevronDown, ChevronUp, ArrowRight, Users, User,
-  Sparkles, Target, Mail, Rocket, Sun, Moon, Cloud,
+  Sparkles, Target, Mail, Rocket, Sun, Moon,
+  Cloud, Database, Shield, BarChart3, Cog,
+  TrendingUp, DollarSign, ShoppingCart,
 } from 'lucide-react'
 import { supabase, supabasePublic } from '../supabaseClient'
 import { EditableText, EditableImage } from './Editable'
@@ -121,15 +123,13 @@ function VerticalLimelightNav({ items, activeIndex, onChange, className = '' }) 
           >
             {React.cloneElement(icon, {
               size: 18,
-              className: `transition-opacity duration-200 ${isActive ? 'opacity-100' : 'opacity-50'}`,
-              style: { color: isActive ? '#f5e6c2' : 'rgba(245,230,194,0.55)' },
+              className: `luxe-nav-icon transition-opacity duration-200 ${isActive ? 'is-active opacity-100' : 'opacity-50'}`,
             })}
             {label && (
               <span
-                className={`mt-1 text-[9px] tracking-[0.18em] uppercase transition-opacity duration-200 ${
-                  isActive ? 'opacity-100' : 'opacity-55'
+                className={`luxe-nav-label mt-1 text-[9px] tracking-[0.18em] uppercase transition-opacity duration-200 ${
+                  isActive ? 'is-active opacity-100' : 'opacity-55'
                 }`}
-                style={{ color: isActive ? '#f5e6c2' : 'rgba(245,230,194,0.55)' }}
               >
                 {label}
               </span>
@@ -199,28 +199,46 @@ function FloatingSideDock({ isDark, onToggleTheme, scrollToSection, onOpenContac
     }
   }, [])
 
-  // Auto-update active index based on which section is in view.
+  // Auto-update active index based on scroll position. We pick the
+  // section whose TOP has most recently crossed above the viewport's
+  // vertical center — i.e. the section the user has "entered" past its
+  // header. This can't oscillate the way an IntersectionObserver-based
+  // check does (where two adjacent sections both above the threshold
+  // would let the active highlight flicker between them).
+  //
   // Guarded by scrollLockRef so a click-triggered smooth-scroll doesn't
   // briefly snap the limelight to every section it passes through.
   useEffect(() => {
     const sectionIds = ['about', 'moonshot', 'vision', 'team']
-    const observers = []
-    sectionIds.forEach((id, i) => {
-      const el = document.getElementById(id)
-      if (!el) return
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (scrollLockRef.current) return
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
-            setActiveIndex(i)
-          }
-        },
-        { threshold: [0.35, 0.6, 0.85], root: document.getElementById('main-scroll') }
-      )
-      observer.observe(el)
-      observers.push(observer)
-    })
-    return () => observers.forEach(o => o.disconnect())
+    const scroller = document.getElementById('main-scroll') || window
+    let rafId = null
+    const compute = () => {
+      rafId = null
+      if (scrollLockRef.current) return
+      const scrollerEl = document.getElementById('main-scroll')
+      const sRect = scrollerEl ? scrollerEl.getBoundingClientRect() : { top: 0, height: window.innerHeight }
+      const halfH = sRect.height / 2
+      let idx = -1
+      for (let i = 0; i < sectionIds.length; i++) {
+        const el = document.getElementById(sectionIds[i])
+        if (!el) continue
+        const rect = el.getBoundingClientRect()
+        // Has this section's top crossed above the viewport's center?
+        if ((rect.top - sRect.top) < halfH) idx = i
+      }
+      if (idx >= 0) setActiveIndex(idx)
+    }
+    const onScroll = () => {
+      if (!rafId) rafId = requestAnimationFrame(compute)
+    }
+    compute()
+    scroller.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll, { passive: true })
+    return () => {
+      scroller.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   // Click-to-scroll with lock: instantly set active, lock for ~1100ms while
@@ -271,7 +289,7 @@ function FloatingSideDock({ isDark, onToggleTheme, scrollToSection, onOpenContac
           className="luxe-dock-item"
           aria-label="Open contact card"
         >
-          <Mail size={16} style={{ color: 'rgba(245,230,194,0.7)' }} />
+          <Mail size={16} className="luxe-dock-mail-icon" />
           <span className="luxe-dock-label">Contact</span>
         </button>
         <div className="luxe-dock-divider" />
@@ -484,7 +502,9 @@ function TeamCard({ member, lead = false, isAdmin, onMemberChange, mode = null, 
   // Shared face styling — front and back of the flip card use IDENTICAL outer
   // box (same dimensions, ring, shadow, gradient bg) so the flip is just a
   // content swap, not a size change.
-  const faceClass = `absolute inset-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[#3a2e1a] to-[#1a1208] ring-2 ring-[rgba(212,184,123,0.25)] shadow-[0_8px_32px_-8px_rgba(212,184,123,0.4)] transition-shadow duration-300 group-hover:shadow-[0_12px_40px_-8px_rgba(229,207,148,0.55)]`
+  // Card face — refactored from inline Tailwind arbitrary classes into a
+  // CSS class so light mode can override the background gradient cleanly.
+  const faceClass = `team-card-face absolute inset-0 rounded-2xl overflow-hidden`
   const frontAvatarClass = `${faceClass} flex items-center justify-center`
 
   return (
@@ -535,19 +555,26 @@ function TeamCard({ member, lead = false, isAdmin, onMemberChange, mode = null, 
                     {member.employee_roles.map((r, i) => (
                       <span
                         key={i}
-                        className="inline-block px-1.5 py-[1px] rounded-full text-[8px] font-semibold tracking-wide"
-                        style={{
-                          background: 'rgba(212,184,123,0.10)',
-                          color: '#e6cf94',
-                          border: '1px solid rgba(212,184,123,0.28)',
-                        }}
+                        className="team-card-role-pill inline-block px-1.5 py-[1px] rounded-full text-[8px] font-semibold tracking-wide"
                       >
                         {r}
                       </span>
                     ))}
                   </div>
                 )}
-                <p className={`luxe-body leading-snug ${lead ? 'text-[11px]' : 'text-[9px]'}`}>
+                {/* line-clamp keeps every card the same shape; bios longer
+                    than the card can hold get a clean "…" truncation
+                    instead of overflowing or pushing the layout around. */}
+                <p
+                  className={`luxe-body leading-snug ${lead ? 'text-[11px]' : 'text-[9px]'}`}
+                  style={{
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: lead ? 7 : 5,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {member.bio || ''}
                 </p>
               </div>
@@ -633,6 +660,62 @@ export default function LandingPage({ isAdmin }) {
   // Business card modal open state. Triggered from the floating dock entry
   // and the top hero nav strip; card content is pulled from the team lead.
   const [cardOpen, setCardOpen] = useState(false)
+
+  // Hero video FOCUS PULL on hover. Hovering ANY chip or disc applies a
+  // gentle scale(1.05) + blur(2px) to the background video — like a film
+  // camera pulling focus to the foreground. We never touch playback, so
+  // the video just keeps looping smoothly underneath the effect. The
+  // change is CSS-only (transform + filter) so it's GPU-accelerated and
+  // never stutters. hoverCountRef lets the user slide the cursor between
+  // adjacent chips without the video snapping back in between.
+  const videoRef      = useRef(null)
+  const hoverCountRef = useRef(0)
+  const [videoFocused, setVideoFocused] = useState(false)
+  const onCardHover = useCallback(() => {
+    hoverCountRef.current += 1
+    setVideoFocused(true)
+  }, [])
+  const onCardLeave = useCallback(() => {
+    hoverCountRef.current = Math.max(0, hoverCountRef.current - 1)
+    if (hoverCountRef.current === 0) setVideoFocused(false)
+  }, [])
+
+  // Hero clock rail — the 5 capability chips are arranged around the
+  // big EBS logo as if at clock-hour positions 7..11. We need the logo's
+  // ACTUAL on-screen center (it shifts with viewport width and image-
+  // aspect quirks) to anchor the arc, so we measure it after mount and
+  // on every resize / image-load.
+  const logoImgRef = useRef(null)
+  const [logoCenter, setLogoCenter] = useState(null)
+  useEffect(() => {
+    const compute = () => {
+      const img = logoImgRef.current
+      if (!img) return
+      const section = img.closest('section[data-hero]')
+      if (!section) return
+      const sRect = section.getBoundingClientRect()
+      const iRect = img.getBoundingClientRect()
+      setLogoCenter({
+        x: iRect.left - sRect.left + iRect.width / 2,
+        y: iRect.top - sRect.top + iRect.height / 2,
+      })
+    }
+    let raf = null
+    const schedule = () => { if (raf == null) raf = requestAnimationFrame(() => { raf = null; compute() }) }
+    compute()
+    const img = logoImgRef.current
+    if (img && !img.complete) img.addEventListener('load', compute, { once: true })
+    const ro = new ResizeObserver(schedule)
+    if (img) ro.observe(img)
+    const section = img?.closest('section[data-hero]')
+    if (section) ro.observe(section)
+    window.addEventListener('resize', schedule)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', schedule)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [content, loading])
 
   // Click-navigation (floating dock + limelight nav): scroll so the target's
   // vertical CENTER lands at the viewport's vertical CENTER. Crucially we
@@ -765,7 +848,8 @@ export default function LandingPage({ isAdmin }) {
             browsers; preload="auto" buffers the file so the seam at the
             loop point doesn't stutter on first wrap. */}
         <video
-          src="./mp__.mp4"
+          ref={videoRef}
+          src="./real3.mp4"
           autoPlay
           muted
           loop
@@ -775,11 +859,17 @@ export default function LandingPage({ isAdmin }) {
           aria-hidden="true"
           tabIndex={-1}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
+          style={{
+            transform: videoFocused ? 'scale(1.05)' : 'scale(1)',
+            filter: videoFocused ? 'blur(2px)' : 'blur(0px)',
+            transition: 'transform 0.45s cubic-bezier(.4,0,.2,1), filter 0.45s ease-out',
+            willChange: 'transform, filter',
+          }}
         />
         {/* Subtle dark vignette over the video so the gold overlays + white
             text below remain legible regardless of which frame is showing. */}
         <div
-          className="absolute inset-0 pointer-events-none z-0"
+          className="hero-vignette absolute inset-0 pointer-events-none z-0"
           style={{
             background:
               'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0,0,0,0.30), transparent 65%), linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%)',
@@ -847,92 +937,175 @@ export default function LandingPage({ isAdmin }) {
           }}
         />
 
-        {/* Glassmorphism capability chip — left side, vertically centred.
-            Exact size 8cm × 2.5cm (302px × 94px at 96dpi) per the user spec.
-            Hidden below lg so it doesn't crowd the centred content on small
-            screens. */}
-        <div
-          className="hidden lg:flex items-center absolute left-8 xl:left-12 top-1/2 -translate-y-1/2 z-30"
-          style={{
-            width: '302px',
-            height: '94px',
-            padding: '12px',
-            gap: '14px',
-            background: 'rgba(245,230,194,0.04)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-            border: '1px solid rgba(212,184,123,0.28)',
-            borderRadius: '18px',
-            boxShadow:
-              'inset 0 1px 0 0 rgba(245,230,194,0.06), 0 12px 30px -12px rgba(0,0,0,0.65)',
-          }}
-        >
-          <div
-            className="grid place-items-center shrink-0"
-            style={{
-              width: '70px',
-              height: '70px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(245,230,194,0.10), rgba(202,161,90,0.06))',
-              border: '1px solid rgba(212,184,123,0.30)',
-              color: '#fff8e7',
-            }}
-          >
-            <Cloud size={30} strokeWidth={1.8} />
-          </div>
-          <div className="flex flex-col leading-none min-w-0">
-            <span
+        {/* Glassmorphism capability rail — 5 chips arranged at clock-hour
+            positions 11, 10, 9, 8, 7 around the big EBS logo. The anchor
+            point (logoCenter) is measured from the actual logo <img> at
+            mount + on every resize, so the arc stays centred on the logo
+            regardless of viewport width or padding. Each chip is 302×94 px
+            (8×2.5 cm at 96 dpi). Hidden below lg so the centred content
+            stays clean on tablets/phones. */}
+        {logoCenter && (() => {
+          // Capability chips form a SHALLOW PARABOLIC ARC that bulges
+          // LEFT (away from the logo) at the middle. We anchor the
+          // wrapper 1 cm (~38 px) from the section's LEFT EDGE so the
+          // arc sits flush against the viewport edge regardless of how
+          // wide the screen is. Logo center in wrapper-local coords is
+          // computed from the measured logoCenter.
+          const SECTION_LEFT_GAP = 72   // ~1.9 cm from the hero's left edge
+          const X_CURVE   = -45         // middle chip's bulge (negative = LEFT, away from logo)
+          const Y_SPACING = 130         // vertical distance between consecutive chip centers
+          const Y_OFFSET  = 67          // shift the whole rail ~1.75 cm down so the TOP chip clears the viewport edge
+          const CHIP_HALF_W = 130       // 260 / 2
+          const CHIP_HALF_H = 39        // 78 / 2
+          const EDGE_MARGIN = 6         // small gap between chip edge and line start
+          const LINE_END_T   = 0.97     // line runs nearly all the way to the logo center
+          // The wrapper sits at (left=SECTION_LEFT_GAP, top=logoCenter.y).
+          // Logo center in wrapper-local coordinates:
+          const TARGET_X = logoCenter.x - SECTION_LEFT_GAP
+          const TARGET_Y = 0
+          // X_BASE chosen so the LEFTMOST chip's left edge sits exactly at
+          // wrapper origin (= 1 cm from the section's left edge).
+          const X_BASE = CHIP_HALF_W + Math.abs(X_CURVE)
+          const chips = [
+            { id: 'cloud',     line1: 'CLOUD',   line2: 'SOLUTIONS',  sub: 'Scalable. Secure. Reliable.',     Icon: Cloud },
+            { id: 'erp',       line1: 'ERP',     line2: 'SYSTEMS',    sub: 'Streamline. Integrate. Grow.',    Icon: Database },
+            { id: 'security',  line1: 'CYBER',   line2: 'SECURITY',   sub: 'Protect. Detect. Respond.',       Icon: Shield },
+            { id: 'analytics', line1: 'DATA',    line2: 'ANALYTICS',  sub: 'Transform Data into Insight.',    Icon: BarChart3 },
+            { id: 'process',   line1: 'PROCESS', line2: 'AUTOMATION', sub: 'Automate. Optimize. Accelerate.', Icon: Cog },
+          ].map((chip, i) => {
+            // Parametrise i ∈ [0,4] as a normalised index n ∈ [-1, +1].
+            // bulge factor (1 − n²) peaks at n=0 (middle), zero at ends.
+            // With X_CURVE < 0 the middle chip moves LEFT from X_BASE
+            // while top + bottom chips stay at X_BASE.
+            const n = (i - 2) / 2
+            const cx = X_BASE + X_CURVE * (1 - n * n)
+            const cy = (i - 2) * Y_SPACING + Y_OFFSET
+            const DX = TARGET_X - cx
+            const DY = TARGET_Y - cy
+            // Compute t at which the chip→target ray exits the chip's
+            // bounding rectangle. The smallest positive intersection is
+            // the actual exit point on the edge facing the logo.
+            const tCandidates = []
+            if (DX > 0) tCandidates.push( CHIP_HALF_W / DX)
+            if (DX < 0) tCandidates.push(-CHIP_HALF_W / DX)
+            if (DY > 0) tCandidates.push( CHIP_HALF_H / DY)
+            if (DY < 0) tCandidates.push(-CHIP_HALF_H / DY)
+            const tExit = Math.min(...tCandidates.filter(t => t > 0))
+            // Move slightly outside the chip so the line is fully visible.
+            const dist = Math.sqrt(DX * DX + DY * DY)
+            const tStart = tExit + EDGE_MARGIN / dist
+            return {
+              ...chip, cx, cy,
+              sx: cx + tStart      * DX, sy: cy + tStart      * DY,
+              ex: cx + LINE_END_T  * DX, ey: cy + LINE_END_T  * DY,
+            }
+          })
+          return (
+            <div
+              className="hidden lg:block absolute z-30 pointer-events-none"
               style={{
-                fontFamily: "'Space Grotesk', system-ui, sans-serif",
-                fontSize: '17px',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                color: '#fff8e7',
-                lineHeight: 1,
+                left: `${SECTION_LEFT_GAP}px`,
+                top:  `${logoCenter.y}px`,
               }}
             >
-              CLOUD
-            </span>
-            <span
-              style={{
-                fontFamily: "'Space Grotesk', system-ui, sans-serif",
-                fontSize: '17px',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                color: '#e6cf94',
-                lineHeight: 1,
-                marginTop: '3px',
-              }}
-            >
-              SOLUTIONS
-            </span>
-            <span
-              style={{
-                fontFamily: "'DM Sans', system-ui, sans-serif",
-                fontSize: '10.5px',
-                fontWeight: 500,
-                color: 'rgba(245,230,194,0.55)',
-                lineHeight: 1.2,
-                marginTop: '6px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Scalable. Secure. Reliable.
-            </span>
-          </div>
-        </div>
+              {/* (Connector lines removed per user — chips render alone.) */}
+              {chips.map(({ id, cx, cy, line1, line2, sub, Icon }) => (
+                <div
+                  key={id}
+                  className="hero-cap-chip absolute flex items-center pointer-events-auto"
+                  style={{
+                    left: `${cx}px`,
+                    top: `${cy}px`,
+                  }}
+                  onMouseEnter={onCardHover}
+                  onMouseLeave={onCardLeave}
+                >
+                  <div className="hero-cap-icon grid place-items-center shrink-0">
+                    <Icon size={26} strokeWidth={1.8} />
+                  </div>
+                  <div className="flex flex-col leading-none min-w-0 text-left">
+                    <span className="hero-cap-line1">{line1}</span>
+                    <span className="hero-cap-line2">{line2}</span>
+                    <span className="hero-cap-sub">{sub}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
 
-        <div className="relative max-w-6xl mx-auto px-6 lg:px-8 py-20 lg:py-28 flex flex-col items-center text-center">
+        {logoCenter && (() => {
+          // RIGHT ORBIT — 5 glass circles (1 cm radius / 76 px diameter)
+          // arranged in a ZIGZAG pattern on the right of the EBS logo.
+          // The OUTER column is anchored 1 cm from the viewport's right
+          // edge; the INNER column sits X_ZIG px further left. Odd-indexed
+          // discs (Sales, Procurement) live on the outer column; even-
+          // indexed ones (Operations, Finance, HR) live on the inner column.
+          const CIRCLE_R   = 38       // 1 cm radius (76 px diameter)
+          const RIGHT_GAP  = 38       // 1 cm from viewport right edge
+          const X_ZIG      = 150      // horizontal separation between the two zigzag columns (stretched)
+          const Y_SPACING  = 130      // vertical between consecutive disc centers
+          const Y_OFFSET   = 67       // shift the whole orbit ~1.75 cm down so the TOP disc clears the viewport edge
+          // Outer-column x in section coords:
+          //   circle_right_edge = viewport_w - RIGHT_GAP
+          //   circle_center_x   = viewport_w - RIGHT_GAP - CIRCLE_R
+          // In wrapper-local coords (wrapper anchored at logoCenter):
+          //   cx_outer = (viewport_w - RIGHT_GAP - CIRCLE_R) - logoCenter.x
+          const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1280
+          const cxOuter = viewportW - RIGHT_GAP - CIRCLE_R - logoCenter.x
+          const cxInner = cxOuter - X_ZIG
+          const orbits = [
+            { id: 'operations',  label: 'OPERATIONS',       Icon: Users },
+            { id: 'sales',       label: 'SALES',             Icon: TrendingUp },
+            { id: 'finance',     label: 'FINANCE',           Icon: DollarSign },
+            { id: 'procurement', label: 'PROCUREMENT',       Icon: ShoppingCart },
+            { id: 'hr',          label: 'HUMAN\nRESOURCES',  Icon: User },
+          ].map((o, i) => {
+            const cx = (i % 2 === 0) ? cxInner : cxOuter
+            const cy = (i - 2) * Y_SPACING + Y_OFFSET
+            return { ...o, cx, cy }
+          })
+          return (
+            <div
+              className="hidden lg:block absolute z-30 pointer-events-none"
+              style={{
+                left: `${logoCenter.x}px`,
+                top:  `${logoCenter.y}px`,
+              }}
+            >
+              {/* (Connector lines removed per user — discs render alone.) */}
+              {orbits.map(({ id, cx, cy, label, Icon }) => (
+                <div
+                  key={id}
+                  className="hero-orbit-unit absolute pointer-events-auto"
+                  style={{ left: `${cx}px`, top: `${cy}px` }}
+                  onMouseEnter={onCardHover}
+                  onMouseLeave={onCardLeave}
+                >
+                  <div className="hero-orbit-circle">
+                    <Icon size={32} strokeWidth={1.8} />
+                  </div>
+                  <span className="hero-orbit-label" style={{ whiteSpace: 'pre-line' }}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        <div className="relative max-w-6xl mx-auto px-6 lg:px-8 pt-[138px] lg:pt-[168px] pb-6 lg:pb-8 min-h-screen flex flex-col items-center justify-center text-center">
           {/* Eyebrow rule + label — champagne gold to match the luxe theme */}
-          <div className="flex items-center gap-3 mb-10" style={{ color: '#e6cf94' }}>
-            <span className="h-px w-10" style={{ background: 'rgba(212,184,123,0.55)' }} />
+          <div className="hero-eyebrow flex items-center gap-3 mb-5">
+            <span className="hero-eyebrow-rule h-px w-10" />
             <span className="text-[11px] tracking-[0.35em] uppercase font-semibold">EBS Department</span>
-            <span className="h-px w-10" style={{ background: 'rgba(212,184,123,0.55)' }} />
+            <span className="hero-eyebrow-rule h-px w-10" />
           </div>
 
-          {/* EBS hero wordmark — white-on-transparent, large, centered.
-              mt-[38px] ≈ 1cm push-down requested by the user. */}
-          <div className="relative mx-auto flex items-center justify-center mt-[38px] mb-12 w-full max-w-5xl">
+          {/* EBS hero wordmark — sits at its natural top position (the
+              prior mt-[38px] push-down was removed so the logo + everything
+              below it is raised ~1 cm). */}
+          <div className="relative mx-auto flex items-center justify-center mb-6 w-full max-w-4xl">
             <div
               className="absolute inset-0 rounded-full pointer-events-none"
               style={{
@@ -941,9 +1114,10 @@ export default function LandingPage({ isAdmin }) {
               }}
             />
             <img
+              ref={logoImgRef}
               src="./ebs-hero-logo.png"
               alt="EBS · Enterprise Business Solutions · Driving Digital Excellence"
-              className="relative block mx-auto w-full max-w-[860px] h-auto object-contain drop-shadow-[0_8px_60px_rgba(255,255,255,0.2)]"
+              className="relative block mx-auto w-full max-w-[700px] h-auto object-contain drop-shadow-[0_8px_60px_rgba(255,255,255,0.2)]"
             />
           </div>
 
@@ -952,23 +1126,14 @@ export default function LandingPage({ isAdmin }) {
             value={content.hero_title}
             isAdmin={isAdmin}
             onSave={v => saveContent('hero_title', v)}
-            className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold font-display leading-[1.05] tracking-tight max-w-4xl"
+            className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold font-display leading-[1.05] tracking-tight max-w-4xl"
             as="h1"
-          />
-
-          {/* Subtitle */}
-          <EditableText
-            value={content.hero_subtitle}
-            isAdmin={isAdmin}
-            onSave={v => saveContent('hero_subtitle', v)}
-            className="text-base sm:text-lg text-white/65 mt-6 max-w-2xl"
-            as="p"
           />
 
           {/* Hero CTA — primary luxe pill (champagne fill, dark arrow capsule, signature sweep + lift animation) */}
           <button
             onClick={() => navigate('/dashboard')}
-            className="mt-10 luxe-button-pill"
+            className="mt-6 luxe-button-pill"
           >
             Explore Projects
             <span className="luxe-button-pill-arrow">
@@ -976,8 +1141,17 @@ export default function LandingPage({ isAdmin }) {
             </span>
           </button>
 
+          {/* Subtitle */}
+          <EditableText
+            value={content.hero_subtitle}
+            isAdmin={isAdmin}
+            onSave={v => saveContent('hero_subtitle', v)}
+            className="text-base sm:text-lg text-white/65 mt-5 max-w-2xl"
+            as="p"
+          />
+
           {/* Secondary — small caption for additional weight */}
-          <div className="mt-14 flex items-center gap-6 text-[11px] uppercase tracking-[0.25em] text-white/35">
+          <div className="mt-5 flex items-center gap-6 text-[11px] uppercase tracking-[0.25em] text-white/35">
             <span>Enterprise Systems</span>
             <span className="w-1 h-1 rounded-full bg-white/40" />
             <span>Integrations</span>

@@ -1827,6 +1827,168 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .app-dark .text-brand-600 { color: #E6C978 !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   HERO CAPABILITY CHIPS — base styling + hover (Lift + Glow)
+   ═══════════════════════════════════════════════════════════════════════════
+   Each chip is positioned absolutely at (left, top) inline (per-chip). The
+   transform: translate(-50%, -50%) below centers the chip on that point.
+   Hover overrides the translate with an additional -6 px upward shift,
+   brightens the border, and grows a soft champagne halo beneath. */
+.hero-cap-chip {
+  width: 260px;
+  height: 78px;
+  padding: 10px;
+  gap: 12px;
+  border-radius: 16px;
+  background: rgba(245, 230, 194, 0.04);
+  border: 1px solid rgba(212, 184, 123, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(245, 230, 194, 0.06),
+    0 10px 26px -12px rgba(0, 0, 0, 0.65);
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.35s cubic-bezier(.4, 0, .2, 1),
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+  will-change: transform;
+}
+.hero-cap-chip:hover {
+  transform: translate(-50%, calc(-50% - 6px));
+  background: rgba(245, 230, 194, 0.075);
+  border-color: rgba(229, 207, 148, 0.60);
+  box-shadow:
+    inset 0 1px 0 0 rgba(245, 230, 194, 0.14),
+    0 22px 48px -10px rgba(212, 184, 123, 0.50),
+    0 0 36px -6px rgba(229, 207, 148, 0.40);
+}
+/* Chip internals — refactored from inline styles to classes so light
+   mode can override them. */
+.hero-cap-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(245,230,194,0.10), rgba(202,161,90,0.06));
+  border: 1px solid rgba(212,184,123,0.30);
+  color: #fff8e7;
+}
+.hero-cap-line1 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff8e7;
+  line-height: 1;
+}
+.hero-cap-line2 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #e6cf94;
+  line-height: 1;
+  margin-top: 2px;
+}
+.hero-cap-sub {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: rgba(245,230,194,0.55);
+  line-height: 1.2;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+
+/* Dock + limelight nav internals — refactored from inline color styles
+   so light mode can override them. */
+.luxe-nav-icon       { color: rgba(245, 230, 194, 0.55); }
+.luxe-nav-icon.is-active { color: #f5e6c2; }
+.luxe-nav-label      { color: rgba(245, 230, 194, 0.55); }
+.luxe-nav-label.is-active { color: #f5e6c2; }
+.luxe-dock-mail-icon { color: rgba(245, 230, 194, 0.7); }
+
+/* Hero eyebrow rule (above the EBS logo) — refactored from inline gold
+   colors so light mode can override it. */
+.hero-eyebrow      { color: #e6cf94; }
+.hero-eyebrow-rule { background: rgba(212, 184, 123, 0.55); }
+
+/* Team flip-card face — refactored from Tailwind arbitrary gradient
+   classes so light mode can swap it for a cream variant. */
+.team-card-face {
+  background: linear-gradient(135deg, #3a2e1a, #1a1208);
+  box-shadow:
+    0 0 0 2px rgba(212, 184, 123, 0.25),
+    0 8px 32px -8px rgba(212, 184, 123, 0.4);
+  transition: box-shadow 300ms ease;
+}
+.group:hover .team-card-face {
+  box-shadow:
+    0 0 0 2px rgba(212, 184, 123, 0.25),
+    0 12px 40px -8px rgba(229, 207, 148, 0.55);
+}
+/* Role pills on the back of the flip card. */
+.team-card-role-pill {
+  background: rgba(212, 184, 123, 0.10);
+  color: #e6cf94;
+  border: 1px solid rgba(212, 184, 123, 0.28);
+}
+
+/* Right-orbit glass discs — 1 cm radius (76 px diameter). Label sits
+   BELOW the circle (not inside), icon fills most of the disc. The outer
+   wrapper handles the lift hover so the circle + label travel together. */
+.hero-orbit-unit {
+  transform: translate(-50%, -50%);
+  transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
+  will-change: transform;
+}
+.hero-orbit-unit:hover {
+  transform: translate(-50%, calc(-50% - 5px));
+}
+.hero-orbit-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(245, 230, 194, 0.05);
+  border: 1px solid rgba(212, 184, 123, 0.32);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(245, 230, 194, 0.06),
+    0 8px 20px -10px rgba(0, 0, 0, 0.65);
+  display: grid;
+  place-items: center;
+  color: #fff8e7;
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+.hero-orbit-unit:hover .hero-orbit-circle {
+  background: rgba(245, 230, 194, 0.075);
+  border-color: rgba(229, 207, 148, 0.60);
+  box-shadow:
+    inset 0 1px 0 0 rgba(245, 230, 194, 0.14),
+    0 16px 32px -8px rgba(212, 184, 123, 0.50),
+    0 0 24px -4px rgba(229, 207, 148, 0.40);
+}
+.hero-orbit-label {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #e6cf94;
+  text-align: center;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    BUSINESS CARD MODAL — luxe gold port
    ═══════════════════════════════════════════════════════════════════════════
    Cursor-tilt modal with sheen / aurora / hairline grid. Dark surface is a
@@ -2287,3 +2449,89 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .landing-light .luxe-card-zone { color: rgba(58, 47, 29, 0.55); }
 .landing-light .luxe-card-hint { color: rgba(58, 47, 29, 0.45); }
 .landing-light .luxe-card-hint-key { color: #5f4419; }
+
+/* ── Hero capability chips (left) — light variant ──────────────────────── */
+.landing-light .hero-cap-chip {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(154, 115, 53, 0.34);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 10px 26px -12px rgba(122, 90, 38, 0.18);
+}
+.landing-light .hero-cap-chip:hover {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(154, 115, 53, 0.60);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 22px 48px -10px rgba(154, 115, 53, 0.35),
+    0 0 36px -6px rgba(154, 115, 53, 0.28);
+}
+.landing-light .hero-cap-icon {
+  background: linear-gradient(135deg, rgba(154,115,53,0.10), rgba(122,90,38,0.06));
+  border-color: rgba(154,115,53,0.35);
+  color: #5f4419;
+}
+.landing-light .hero-cap-line1 { color: #3a2f1d; }
+.landing-light .hero-cap-line2 { color: #7a5a26; }
+.landing-light .hero-cap-sub   { color: rgba(58, 47, 29, 0.62); }
+
+/* ── Hero orbit circles (right) — light variant ────────────────────────── */
+.landing-light .hero-orbit-circle {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(154, 115, 53, 0.34);
+  color: #5f4419;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 8px 20px -10px rgba(122, 90, 38, 0.20);
+}
+.landing-light .hero-orbit-unit:hover .hero-orbit-circle {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(154, 115, 53, 0.60);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 22px 48px -10px rgba(154, 115, 53, 0.35),
+    0 0 36px -6px rgba(154, 115, 53, 0.28);
+}
+.landing-light .hero-orbit-label { color: #7a5a26; }
+
+/* ── Dock + limelight nav — light variant ──────────────────────────────── */
+.landing-light .luxe-nav-icon       { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-nav-icon.is-active { color: #5f4419; }
+.landing-light .luxe-nav-label      { color: rgba(58, 47, 29, 0.55); }
+.landing-light .luxe-nav-label.is-active { color: #5f4419; }
+.landing-light .luxe-dock-mail-icon { color: #7a5a26; }
+
+/* ── Hero secondary caption + Tailwind cream text utility ──────────────── */
+/* Team member names use text-[#fff8e7] (cream) — invisible on cream bg. */
+.landing-light .text-\[\#fff8e7\] { color: #3a2f1d; }
+/* TeamCard fallback User icon when no avatar — was [#caa15a] gold on the
+   dark photo; needs deeper champagne so it reads on the cream face. */
+.landing-light .text-\[\#caa15a\] { color: #7a5a26; }
+
+/* ── Hero in light mode — hide the dark video + vignette so the cream
+   gradient becomes the actual hero background, and recolour the eyebrow
+   rule to deeper champagne so it reads on cream. ─────────────────────── */
+.landing-light [data-hero] video,
+.landing-light [data-hero] .hero-vignette {
+  display: none;
+}
+.landing-light .hero-eyebrow      { color: #7a5a26; }
+.landing-light .hero-eyebrow-rule { background: rgba(154, 115, 53, 0.55); }
+
+/* ── Team flip-card face + role pills — light variant ──────────────────── */
+.landing-light .team-card-face {
+  background: linear-gradient(135deg, #fdfaf2, #f1e6c8);
+  box-shadow:
+    0 0 0 2px rgba(154, 115, 53, 0.30),
+    0 8px 32px -8px rgba(154, 115, 53, 0.22);
+}
+.landing-light .group:hover .team-card-face {
+  box-shadow:
+    0 0 0 2px rgba(154, 115, 53, 0.45),
+    0 12px 40px -8px rgba(154, 115, 53, 0.32);
+}
+.landing-light .team-card-role-pill {
+  background: rgba(154, 115, 53, 0.12);
+  color: #5f4419;
+  border-color: rgba(154, 115, 53, 0.35);
+}
