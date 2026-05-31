@@ -847,9 +847,13 @@ export default function LandingPage({ isAdmin }) {
             autoPlay+muted+playsInline is required for autoplay in modern
             browsers; preload="auto" buffers the file so the seam at the
             loop point doesn't stutter on first wrap. */}
+        {/* Two looping videos in the same slot — one for dark mode, one
+            for light. CSS swaps which one is visible based on the
+            .landing-light class on the page root, so the user toggling
+            the theme also switches the background footage. */}
         <video
           ref={videoRef}
-          src="./real3.mp4"
+          src="./real2.mp4"
           autoPlay
           muted
           loop
@@ -858,7 +862,25 @@ export default function LandingPage({ isAdmin }) {
           disablePictureInPicture
           aria-hidden="true"
           tabIndex={-1}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
+          className="hero-video-dark absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
+          style={{
+            transform: videoFocused ? 'scale(1.05)' : 'scale(1)',
+            filter: videoFocused ? 'blur(2px)' : 'blur(0px)',
+            transition: 'transform 0.45s cubic-bezier(.4,0,.2,1), filter 0.45s ease-out',
+            willChange: 'transform, filter',
+          }}
+        />
+        <video
+          src="./mp41.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          aria-hidden="true"
+          tabIndex={-1}
+          className="hero-video-light absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
           style={{
             transform: videoFocused ? 'scale(1.05)' : 'scale(1)',
             filter: videoFocused ? 'blur(2px)' : 'blur(0px)',
@@ -880,10 +902,15 @@ export default function LandingPage({ isAdmin }) {
             animation and ambient light pools below. Offset down from the
             hero's top edge so the wrapper's negative margins + any
             iOS safe-area inset don't push it off-screen. */}
+        {/* Nav links sit at the same y as before (≈ 56 px from the top
+            of the hero); the backdrop gradient starts from the page top
+            (no longer leaving a strip of video visible above it). We do
+            that by anchoring the nav at top: 0 and using pt-14 to push
+            the text down to its prior visual position. */}
         <nav
-          className="absolute left-0 right-0 z-50 flex items-center justify-center gap-6 sm:gap-10 py-4 px-6 pointer-events-none"
+          className="absolute left-0 right-0 z-50 flex items-center justify-center gap-6 sm:gap-10 pt-14 pb-4 px-6 pointer-events-none"
           style={{
-            top: 'max(2.5rem, calc(env(safe-area-inset-top) + 1.5rem))',
+            top: 0,
             background:
               'linear-gradient(180deg, rgba(12,10,8,0.78) 0%, rgba(12,10,8,0.35) 60%, rgba(12,10,8,0) 100%)',
             borderRadius: '0 0 18px 18px',
@@ -909,6 +936,19 @@ export default function LandingPage({ isAdmin }) {
               </button>
             </Fragment>
           ))}
+          {/* Theme toggle — small luxe gold pill that sits in the nav.
+              In sync with the floating dock toggle (both flip the same
+              lightMode state). */}
+          <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setLightMode(v => !v)}
+            className="hero-nav-theme-toggle pointer-events-auto"
+            aria-label={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+            title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {lightMode ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
+          </button>
         </nav>
 
         {/* Ambient light pools — stronger gold glows for a richer luxe feel */}
@@ -1021,7 +1061,7 @@ export default function LandingPage({ isAdmin }) {
                   onMouseLeave={onCardLeave}
                 >
                   <div className="hero-cap-icon grid place-items-center shrink-0">
-                    <Icon size={26} strokeWidth={1.8} />
+                    <Icon size={22} strokeWidth={1.8} />
                   </div>
                   <div className="flex flex-col leading-none min-w-0 text-left">
                     <span className="hero-cap-line1">{line1}</span>
@@ -1059,7 +1099,7 @@ export default function LandingPage({ isAdmin }) {
             { id: 'sales',       label: 'SALES',             Icon: TrendingUp },
             { id: 'finance',     label: 'FINANCE',           Icon: DollarSign },
             { id: 'procurement', label: 'PROCUREMENT',       Icon: ShoppingCart },
-            { id: 'hr',          label: 'HUMAN\nRESOURCES',  Icon: User },
+            { id: 'hr',          label: 'HUMAN RESOURCES',   Icon: User },
           ].map((o, i) => {
             const cx = (i % 2 === 0) ? cxInner : cxOuter
             const cy = (i - 2) * Y_SPACING + Y_OFFSET
@@ -1085,9 +1125,7 @@ export default function LandingPage({ isAdmin }) {
                   <div className="hero-orbit-circle">
                     <Icon size={32} strokeWidth={1.8} />
                   </div>
-                  <span className="hero-orbit-label" style={{ whiteSpace: 'pre-line' }}>
-                    {label}
-                  </span>
+                  <span className="hero-orbit-label">{label}</span>
                 </div>
               ))}
             </div>

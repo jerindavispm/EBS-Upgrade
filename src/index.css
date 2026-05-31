@@ -1866,9 +1866,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 /* Chip internals — refactored from inline styles to classes so light
    mode can override them. */
 .hero-cap-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 12px;
+  width: 50px;
+  height: 50px;
+  margin-left: 4px;     /* nudge right so the gap to the inset gold ring matches the gap above/below */
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(245,230,194,0.10), rgba(202,161,90,0.06));
   border: 1px solid rgba(212,184,123,0.30);
   color: #fff8e7;
@@ -1908,6 +1909,40 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .luxe-nav-label.is-active { color: #f5e6c2; }
 .luxe-dock-mail-icon { color: rgba(245, 230, 194, 0.7); }
 
+/* Top hero-nav theme toggle — small circular gold pill that sits between
+   the nav links and the right edge. Same vocabulary as the dock toggle
+   (Sun = "currently dark, click for light"; Moon = the inverse). */
+.hero-nav-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(245, 230, 194, 0.05);
+  border: 1px solid rgba(212, 184, 123, 0.34);
+  color: #e6cf94;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.35s cubic-bezier(.34, 1.56, .64, 1);
+}
+.hero-nav-theme-toggle:hover {
+  background: rgba(212, 184, 123, 0.16);
+  border-color: rgba(229, 207, 148, 0.65);
+  color: #f5e6c2;
+  box-shadow:
+    inset 0 1px 0 0 rgba(245, 230, 194, 0.10),
+    0 0 18px -2px rgba(229, 207, 148, 0.50);
+  transform: scale(1.08);
+}
+.hero-nav-theme-toggle:active { transform: scale(0.96); transition-duration: 0.1s; }
+
 /* Hero eyebrow rule (above the EBS logo) — refactored from inline gold
    colors so light mode can override it. */
 .hero-eyebrow      { color: #e6cf94; }
@@ -1946,6 +1981,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   transform: translate(-50%, calc(-50% - 5px));
 }
 .hero-orbit-circle {
+  position: relative;        /* so ::after (light-mode inner ring) anchors here */
   width: 76px;
   height: 76px;
   border-radius: 50%;
@@ -2350,21 +2386,25 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 /* Eyebrow rule + label (Tailwind opacity utilities on inline elements) */
 .landing-light [data-hero] .text-white\/60 { color: rgba(58,47,29,0.62) !important; }
 .landing-light [data-hero] .text-white\/65 { color: rgba(58,47,29,0.7)  !important; }
-.landing-light [data-hero] .text-white\/35 { color: rgba(58,47,29,0.45) !important; }
+/* Secondary caption "Enterprise Systems · Integrations · Analytics" —
+   user wants pure black on cream. */
+.landing-light [data-hero] .text-white\/35 { color: rgba(0,0,0,0.78) !important; }
 .landing-light [data-hero] .bg-white\/30   { background: rgba(154,115,53,0.4)  !important; }
-.landing-light [data-hero] .bg-white\/40   { background: rgba(154,115,53,0.45) !important; }
+.landing-light [data-hero] .bg-white\/40   { background: rgba(0,0,0,0.65)      !important; }
 .landing-light [data-hero] h1              { color: #3a2f1d; }
 
-/* Center wordmark — the asset is white-on-transparent; recolor to deep
-   champagne via filter so it reads on cream without swapping the src. */
+/* Center wordmark + corner watermark — the assets are white-on-transparent
+   PNGs; in light mode we want them in their natural black brand colour
+   instead of cream. filter: brightness(0) turns every opaque pixel black
+   while preserving the alpha channel, so the silhouette reads as solid
+   black on the cream background. */
 .landing-light [data-hero] img[src*="ebs-hero-logo"],
 .landing-light [data-hero] img[src*="union-trading-logo-white"] {
-  filter: brightness(0) saturate(100%) invert(35%) sepia(35%) saturate(900%) hue-rotate(8deg) brightness(95%);
+  filter: brightness(0);
 }
-/* Corner watermark — same treatment + lower opacity to keep it subtle. */
 .landing-light [data-hero] img[src*="hero-corner-logo"] {
-  filter: brightness(0) saturate(100%) invert(35%) sepia(35%) saturate(900%) hue-rotate(8deg) brightness(95%);
-  opacity: 0.4;
+  filter: brightness(0);
+  opacity: 0.55;
 }
 /* Ambient blur pools — hide (they were glow for the dark hero). */
 .landing-light [data-hero] .blur-3xl { opacity: 0; }
@@ -2494,12 +2534,45 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 .landing-light .hero-orbit-label { color: #7a5a26; }
 
+/* Inset gold ring — light-mode only. A second border drawn inside each
+   chip / disc with a few pixels of space from the outer edge, giving the
+   surfaces a small "framed picture" feel against the cream background. */
+.landing-light .hero-cap-chip::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;            /* 16 (outer) − 6 inset */
+  border: 1px solid rgba(154, 115, 53, 0.50);
+  pointer-events: none;
+}
+.landing-light .hero-orbit-circle::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(154, 115, 53, 0.50);
+  pointer-events: none;
+}
+
 /* ── Dock + limelight nav — light variant ──────────────────────────────── */
 .landing-light .luxe-nav-icon       { color: rgba(58, 47, 29, 0.55); }
 .landing-light .luxe-nav-icon.is-active { color: #5f4419; }
 .landing-light .luxe-nav-label      { color: rgba(58, 47, 29, 0.55); }
 .landing-light .luxe-nav-label.is-active { color: #5f4419; }
 .landing-light .luxe-dock-mail-icon { color: #7a5a26; }
+.landing-light .hero-nav-theme-toggle {
+  background: rgba(154, 115, 53, 0.08);
+  border-color: rgba(154, 115, 53, 0.42);
+  color: #5f4419;
+}
+.landing-light .hero-nav-theme-toggle:hover {
+  background: rgba(154, 115, 53, 0.18);
+  border-color: rgba(154, 115, 53, 0.70);
+  color: #3a2f1d;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.65),
+    0 0 18px -2px rgba(154, 115, 53, 0.45);
+}
 
 /* ── Hero secondary caption + Tailwind cream text utility ──────────────── */
 /* Team member names use text-[#fff8e7] (cream) — invisible on cream bg. */
@@ -2508,13 +2581,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
    dark photo; needs deeper champagne so it reads on the cream face. */
 .landing-light .text-\[\#caa15a\] { color: #7a5a26; }
 
-/* ── Hero in light mode — hide the dark video + vignette so the cream
-   gradient becomes the actual hero background, and recolour the eyebrow
-   rule to deeper champagne so it reads on cream. ─────────────────────── */
-.landing-light [data-hero] video,
-.landing-light [data-hero] .hero-vignette {
-  display: none;
-}
+/* ── Hero video swap by theme — only one of the two <video> elements is
+   visible at a time. By default we hide the light-mode video; the
+   .landing-light selector then hides the dark one and shows the light. ─ */
+.hero-video-light { display: none; }
+.landing-light [data-hero] .hero-video-dark  { display: none; }
+.landing-light [data-hero] .hero-video-light { display: block; }
+/* Vignette is still suppressed in light mode (the light-mode footage is
+   intentionally brighter and doesn't need darkening). */
+.landing-light [data-hero] .hero-vignette { display: none; }
 .landing-light .hero-eyebrow      { color: #7a5a26; }
 .landing-light .hero-eyebrow-rule { background: rgba(154, 115, 53, 0.55); }
 
