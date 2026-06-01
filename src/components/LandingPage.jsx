@@ -644,7 +644,7 @@ function TeamCard({ member, lead = false, isAdmin, onMemberChange, mode = null, 
 }
 
 // ---- Main component --------------------------------------------------------
-export default function LandingPage({ isAdmin }) {
+export default function LandingPage({ isAdmin, theme, setTheme }) {
   const navigate = useNavigate()
   const [content, setContent] = useState(null)
   const [team, setTeam] = useState([])
@@ -654,9 +654,17 @@ export default function LandingPage({ isAdmin }) {
   // by a small footer, so max-scroll only allows about one viewport of travel
   // past the section entering view).
   const [setTeamGridRef, teamProgress] = useScrollProgress({ startVhFraction: 1.0, endVhFraction: 0.05 })
-  // Theme state for the floating dock toggle. Flipping it adds a class on the
-  // landing root which serves as a hook for any light-mode CSS overrides.
-  const [lightMode, setLightMode] = useState(false)
+  // Theme is now lifted to <Layout> so the user's choice persists across route
+  // changes (clicking "Explore Projects" used to drop the user back into the
+  // default app-dark dashboard). If parent provides theme + setTheme we mirror
+  // them; otherwise fall back to a local state (e.g. for stand-alone testing).
+  const [localLight, setLocalLight] = useState(false)
+  const lightMode    = setTheme ? (theme === 'light') : localLight
+  const setLightMode = setTheme
+    ? (next) => setTheme(typeof next === 'function'
+        ? (next(lightMode) ? 'light' : 'dark')
+        : (next ? 'light' : 'dark'))
+    : setLocalLight
   // Business card modal open state. Triggered from the floating dock entry
   // and the top hero nav strip; card content is pulled from the team lead.
   const [cardOpen, setCardOpen] = useState(false)

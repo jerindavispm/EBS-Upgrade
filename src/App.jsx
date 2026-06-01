@@ -787,7 +787,19 @@ function Layout() {
     catch { return 'dark' }
   })
   const isLanding = location.pathname === '/'
-  const darkClass = (!isLanding && theme === 'dark') ? 'app-dark' : ''
+  // Non-landing routes get one of two theme layers applied to <main> so the
+  // dashboard / projects / etc. carry the luxe colour story chosen on the
+  // landing. .app-dark is the original warm-black layer; .app-light is its
+  // cream + champagne mirror. Landing handles its own styling.
+  const themeClass = isLanding
+    ? ''
+    : theme === 'dark' ? 'app-dark' : 'app-light'
+  // Lightweight marker on the root so the sidebar + floating buttons —
+  // which are siblings of <main>, not descendants — can be themed via
+  // .theme-light/.theme-dark selectors. This carries NO layout rules of
+  // its own (unlike .app-dark/.app-light which apply backgrounds + a
+  // `> *` z-index helper that would break sibling fixed positioning).
+  const themeMarker = `theme-${theme}`
 
   // Persist theme choice
   useEffect(() => {
@@ -810,7 +822,7 @@ function Layout() {
   ]
   const isActive = (path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
 
-  return <div className="flex h-screen overflow-hidden">
+  return <div className={`flex h-screen overflow-hidden ${themeMarker}`}>
     {/* Backdrop — always present when sidebar is open (all screen sizes) */}
     {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setSidebarOpen(false)} />}
 
@@ -924,11 +936,11 @@ function Layout() {
     </aside>
 
     {/* Main */}
-    <main id="main-scroll" className={`flex-1 overflow-y-auto pb-20 lg:pb-0 ${darkClass}`}>
+    <main id="main-scroll" className={`flex-1 overflow-y-auto pb-20 lg:pb-0 ${themeClass}`}>
 
       <div className={isLanding ? '' : 'px-4 pt-20 pb-8 sm:px-6 lg:px-8'}>
         <Routes>
-          <Route path="/" element={<LandingPage isAdmin={isAdmin} />} />
+          <Route path="/" element={<LandingPage isAdmin={isAdmin} theme={theme} setTheme={setTheme} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<ProjectTracker />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />

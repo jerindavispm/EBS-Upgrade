@@ -1005,6 +1005,232 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   min-height: 100%;
 }
 
+/* ═════════════════════════════════════════════════════════════════
+   .app-light — cream + champagne theme for non-landing routes.
+   Mirrors .app-dark's structure so dashboards, project pages, login,
+   and admin all carry the same luxe vocabulary chosen on the landing
+   (cream surfaces, deep-coffee ink, champagne accents, gold grid).
+   ═════════════════════════════════════════════════════════════════ */
+.app-light {
+  color: #3a2f1d;
+  background-color: #fbf7ee;
+  background-image:
+    linear-gradient(rgba(154,115,53,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154,115,53,0.06) 1px, transparent 1px);
+  background-size: 64px 64px;
+  min-height: 100%;
+}
+
+/* Surfaces */
+.app-light .bg-white                 { background-color: rgba(255,250,238,0.85) !important; }
+.app-light .bg-surface-50            { background-color: rgba(255,250,238,0.65) !important; }
+.app-light .bg-surface-100           { background-color: rgba(245,237,217,0.65) !important; }
+.app-light .bg-surface-200           { background-color: rgba(238,225,193,0.7)  !important; }
+
+/* Borders */
+.app-light .border-surface-50        { border-color: rgba(154,115,53,0.14) !important; }
+.app-light .border-surface-100       { border-color: rgba(154,115,53,0.18) !important; }
+.app-light .border-surface-200       { border-color: rgba(154,115,53,0.28) !important; }
+.app-light .border-surface-700\/50   { border-color: rgba(154,115,53,0.22) !important; }
+.app-light .divide-surface-100 > * + * { border-color: rgba(154,115,53,0.18) !important; }
+.app-light .divide-surface-200 > * + * { border-color: rgba(154,115,53,0.24) !important; }
+
+/* Typography — deep coffee → mid coffee scale */
+.app-light .text-surface-900         { color: #3a2f1d !important; }
+.app-light .text-surface-800         { color: #4a3d28 !important; }
+.app-light .text-surface-700         { color: #5a4a32 !important; }
+.app-light .text-surface-600         { color: rgba(58,47,29,0.78) !important; }
+.app-light .text-surface-500         { color: rgba(58,47,29,0.62) !important; }
+.app-light .text-surface-400         { color: rgba(58,47,29,0.48) !important; }
+.app-light .text-surface-300         { color: rgba(58,47,29,0.38) !important; }
+
+/* Status colours — keep semantic hues, tone for cream */
+.app-light .bg-emerald-50            { background-color: rgba(16, 185, 129, 0.10) !important; }
+.app-light .bg-amber-50              { background-color: rgba(245, 158, 11, 0.10) !important; }
+.app-light .bg-red-50                { background-color: rgba(239, 68, 68, 0.10) !important; }
+.app-light .bg-blue-50               { background-color: rgba(59, 130, 246, 0.10) !important; }
+.app-light .bg-slate-50              { background-color: rgba(148, 163, 184, 0.10) !important; }
+.app-light .bg-sky-50                { background-color: rgba(56, 189, 248, 0.10) !important; }
+.app-light .bg-orange-50             { background-color: rgba(249, 115, 22, 0.10) !important; }
+.app-light .bg-violet-50             { background-color: rgba(139, 92, 246, 0.10) !important; }
+
+.app-light .text-emerald-700         { color: #047857 !important; }
+.app-light .text-amber-700           { color: #b45309 !important; }
+.app-light .text-red-700             { color: #b91c1c !important; }
+.app-light .text-blue-700            { color: #1d4ed8 !important; }
+.app-light .text-slate-600           { color: #475569 !important; }
+.app-light .text-sky-700             { color: #0369a1 !important; }
+.app-light .text-orange-700          { color: #c2410c !important; }
+.app-light .text-red-500             { color: #dc2626 !important; }
+.app-light .text-red-600             { color: #dc2626 !important; }
+
+.app-light .border-emerald-200       { border-color: rgba(16, 185, 129, 0.35) !important; }
+.app-light .border-amber-200         { border-color: rgba(245, 158, 11, 0.35) !important; }
+.app-light .border-red-200           { border-color: rgba(239, 68, 68, 0.35) !important; }
+.app-light .border-blue-200          { border-color: rgba(59, 130, 246, 0.35) !important; }
+.app-light .border-slate-200         { border-color: rgba(148, 163, 184, 0.30) !important; }
+.app-light .border-sky-200           { border-color: rgba(56, 189, 248, 0.35) !important; }
+.app-light .border-orange-200        { border-color: rgba(249, 115, 22, 0.35) !important; }
+
+/* Form inputs on cream — cream-tinted fields with deep coffee ink */
+.app-light input,
+.app-light select,
+.app-light textarea {
+  background-color: rgba(255,250,238,0.85) !important;
+  color: #3a2f1d !important;
+  border-color: rgba(154,115,53,0.30) !important;
+}
+.app-light input::placeholder,
+.app-light textarea::placeholder     { color: rgba(58,47,29,0.42) !important; }
+
+/* Hovers — light champagne tint */
+.app-light .hover\:bg-surface-50:hover    { background-color: rgba(154,115,53,0.06) !important; }
+.app-light .hover\:bg-brand-50:hover      { background-color: rgba(154,115,53,0.07) !important; }
+.app-light .hover\:bg-red-50:hover        { background-color: rgba(239, 68, 68, 0.10) !important; }
+.app-light .hover\:bg-brand-50\/30:hover  { background-color: rgba(154,115,53,0.05) !important; }
+.app-light .hover\:bg-brand-50\/50:hover  { background-color: rgba(154,115,53,0.07) !important; }
+.app-light .hover\:bg-red-50\/50:hover    { background-color: rgba(239, 68, 68,0.08) !important; }
+.app-light .hover\:bg-surface-100:hover   { background-color: rgba(154,115,53,0.10) !important; }
+
+/* Table row hover */
+.app-light tr.project-row:hover       { background: rgba(154,115,53,0.06) !important; }
+
+/* Brand primary buttons — keep champagne pill on cream */
+.app-light .bg-brand-600              { background-color: #9a7335 !important; color: #fffaee !important; }
+.app-light .hover\:bg-brand-700:hover { background-color: #7a5a26 !important; }
+
+/* Shadows — soft champagne-tinted halo */
+.app-light .shadow-sm                 { box-shadow: 0 1px 2px rgba(154,115,53,0.10), 0 0 0 1px rgba(154,115,53,0.08) !important; }
+.app-light .shadow                    { box-shadow: 0 2px 8px -2px rgba(154,115,53,0.18), 0 0 0 1px rgba(154,115,53,0.10) !important; }
+
+/* Brand-coloured accents recoloured to champagne */
+.app-light .text-brand-600            { color: #9a7335 !important; }
+.app-light .text-brand-500            { color: #9a7335 !important; }
+.app-light .text-brand-400            { color: #7a5a26 !important; }
+.app-light .bg-brand-100              { background-color: rgba(154,115,53,0.15) !important; }
+.app-light .bg-brand-50\/30           { background-color: rgba(154,115,53,0.06) !important; }
+
+/* ── Sidebar in light mode — cream + champagne mirror of the dark luxe
+   sidebar. Targets .sidebar-luxe (which lives outside <main> but inside
+   the themeClass-bearing root div). ──────────────────────────────────── */
+.theme-light .sidebar-luxe {
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(154, 115, 53, 0.10), transparent 55%),
+    radial-gradient(80% 50% at 100% 100%, rgba(122, 90, 38, 0.08), transparent 60%),
+    linear-gradient(180deg, #fdfaf2 0%, #f7eed6 60%, #f1e6c8 100%) !important;
+}
+/* Film grain reads heavier on cream — dial it down */
+.theme-light .sidebar-luxe::before { opacity: 0.03; }
+/* Right-edge etched gold trim stays gold — just bump the contrast for cream */
+.theme-light .sidebar-luxe::after {
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(154, 115, 53, 0.18) 12%,
+    rgba(154, 115, 53, 0.40) 30%,
+    rgba(154, 115, 53, 0.40) 70%,
+    rgba(154, 115, 53, 0.18) 88%,
+    transparent 100%);
+}
+.theme-light .sidebar-luxe .luxe-divider {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(154, 115, 53, 0.32) 15%,
+    rgba(154, 115, 53, 0.32) 85%,
+    transparent 100%);
+}
+.theme-light .sidebar-luxe .luxe-logo-frame {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(154, 115, 53, 0.18), transparent 70%),
+    linear-gradient(135deg, #fff8e7 0%, #f1e6c8 100%) !important;
+  border: 1px solid rgba(154, 115, 53, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset,
+    0 0 0 1px rgba(154, 115, 53, 0.08),
+    0 6px 18px -8px rgba(154, 115, 53, 0.30);
+}
+/* The white logo PNG is hard to read on cream — invert to black */
+.theme-light .sidebar-luxe .luxe-logo-frame img { filter: brightness(0); }
+.theme-light .sidebar-luxe .luxe-title {
+  background: linear-gradient(180deg, #3a2f1d 0%, #7a5a26 70%, #9a7335 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.theme-light .sidebar-luxe .luxe-subtitle { color: #7a5a26 !important; }
+.theme-light .sidebar-luxe .luxe-link {
+  color: rgba(58, 47, 29, 0.78) !important;
+}
+.theme-light .sidebar-luxe .luxe-link svg { color: rgba(154, 115, 53, 0.65); }
+.theme-light .sidebar-luxe .luxe-link:hover {
+  color: #3a2f1d !important;
+  background-color: rgba(154, 115, 53, 0.10) !important;
+}
+.theme-light .sidebar-luxe .luxe-link:hover svg { color: #7a5a26; }
+.theme-light .sidebar-luxe .luxe-link.is-active {
+  color: #3a2f1d !important;
+  background: linear-gradient(90deg,
+    rgba(154, 115, 53, 0.22) 0%,
+    rgba(154, 115, 53, 0.08) 60%,
+    transparent 100%) !important;
+}
+.theme-light .sidebar-luxe .luxe-link.is-active svg { color: #7a5a26; }
+.theme-light .sidebar-luxe .luxe-link.is-active::before {
+  background: linear-gradient(180deg, #9a7335 0%, #7a5a26 50%, #5f4419 100%);
+  box-shadow:
+    0 0 8px rgba(154, 115, 53, 0.55),
+    0 0 16px rgba(154, 115, 53, 0.25);
+}
+.theme-light .sidebar-luxe .luxe-section-label { color: #7a5a26 !important; }
+.theme-light .sidebar-luxe .luxe-admin-pill {
+  background: linear-gradient(135deg, #fff8e7 0%, #e6cf94 45%, #caa15a 100%) !important;
+  color: #3a2f1d !important;
+  box-shadow:
+    0 0 0 1px rgba(154, 115, 53, 0.45) inset,
+    0 1px 2px rgba(154, 115, 53, 0.30),
+    0 0 8px rgba(212, 184, 123, 0.45);
+}
+.theme-light .sidebar-luxe .luxe-toggle-track {
+  background: rgba(154, 115, 53, 0.10) !important;
+  border-color: rgba(154, 115, 53, 0.35);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05) inset;
+}
+.theme-light .sidebar-luxe .luxe-toggle-knob {
+  background: linear-gradient(180deg, #fff5d8 0%, #caa15a 60%, #7a5a26 100%) !important;
+  box-shadow:
+    0 0 6px rgba(154, 115, 53, 0.45),
+    0 1px 2px rgba(154, 115, 53, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+}
+.theme-light .sidebar-luxe .luxe-shield {
+  background: linear-gradient(135deg, #f5e6c2 0%, #caa15a 50%, #7a5a26 100%) !important;
+  box-shadow:
+    0 0 0 1px rgba(154, 115, 53, 0.35),
+    0 0 6px rgba(154, 115, 53, 0.35);
+}
+.theme-light .sidebar-luxe .luxe-shield svg { color: #fffaee !important; }
+.theme-light .sidebar-luxe .luxe-email { color: rgba(58, 47, 29, 0.7) !important; }
+
+/* Fixed dark buttons that hard-code bg-surface-900 (mobile open toggle +
+   the small bar containing the dock toggle) — flip to champagne. These
+   live OUTSIDE <main> so they piggy-back on .theme-light on the root. */
+.theme-light .bg-surface-900 {
+  background-color: #9a7335 !important;
+  color: #fffaee !important;
+}
+.theme-light .hover\:bg-surface-800:hover { background-color: #7a5a26 !important; }
+
+/* Editorial atmospheric backdrop — two soft champagne radials */
+.app-light::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 15% -5%, rgba(154,115,53,0.12), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 85% 100%, rgba(154,115,53,0.08), transparent 70%);
+}
+.app-light > * { position: relative; z-index: 1; }
+
 /* Surfaces */
 .app-dark .bg-white                 { background-color: rgba(255,255,255,0.04) !important; }
 .app-dark .bg-surface-50            { background-color: rgba(255,255,255,0.02) !important; }
