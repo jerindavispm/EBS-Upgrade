@@ -806,8 +806,9 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      <div className={`hero-loading-min ${lightMode ? 'is-light' : ''}`}>
+        <div className="hero-loading-min-spinner" />
+        <span className="hero-loading-min-caption">EBS Department</span>
       </div>
     )
   }
