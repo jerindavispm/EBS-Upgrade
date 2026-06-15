@@ -74,8 +74,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   left: 0;
   right: 0;
   z-index: 40;
-  background: #0f1320;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(20,15,24,0.92);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(212,184,123,0.22);
   padding-bottom: env(safe-area-inset-bottom);
   display: flex;
 }
@@ -88,14 +90,17 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   padding: 8px 4px;
   font-size: 10px;
   font-weight: 500;
-  color: #6b7a99;
+  color: rgba(245,230,194,0.55);
   background: none;
   border: none;
   transition: color 0.15s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-.bottom-nav a.active, .bottom-nav button.active { color: #748ffc; }
+.bottom-nav a.active, .bottom-nav button.active {
+  color: #e6cf94;
+  text-shadow: 0 0 12px rgba(231,205,148,0.45);
+}
 
 /* ─── Mobile Modals — full screen ─── */
 @media (max-width: 640px) {

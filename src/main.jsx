@@ -20,15 +20,26 @@ if ('serviceWorker' in navigator) {
 // Global safety nets — surface unhandled rejections + uncaught errors so they
 // stop being silent. Throttle to once per 3s so a runaway loop doesn't spam.
 let _lastErrorAt = 0
+// Noise injected by mobile browsers / extensions (Firefox iOS reader, Brave,
+// Grammarly, ResizeObserver, cross-origin "Script error.") — NOT our app.
+const IGNORE_ERR = /__firefox__|__brave__|reader|ResizeObserver loop|Script error\.?$|Non-Error promise rejection|chrome-extension|moz-extension/i
 function reportGlobal(label, detail) {
+  const msg = (detail && detail.message) || (typeof detail === 'string' ? detail : '') || ''
+  if (IGNORE_ERR.test(msg)) return
   const now = Date.now()
   if (now - _lastErrorAt < 3000) return
   _lastErrorAt = now
   console.error('[global]', label, detail)
-  try { showToast(`${label}: ${(detail && detail.message) || detail || 'unknown error'}`, 'error') } catch {}
+  try { showToast(`${label}: ${msg || 'unknown error'}`, 'error') } catch {}
 }
 window.addEventListener('unhandledrejection', (e) => reportGlobal('Unhandled rejection', e.reason))
-window.addEventListener('error', (e) => reportGlobal('Runtime error', e.error || e.message))
+window.addEventListener('error', (e) => {
+  // Ignore errors coming from scripts not served by our own origin (browser
+  // extensions / injected content scripts), which we can't act on anyway.
+  const file = (e && e.filename) || ''
+  if (file && !file.startsWith(window.location.origin)) return
+  reportGlobal('Runtime error', e.error || e.message)
+})
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

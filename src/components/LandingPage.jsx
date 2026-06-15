@@ -773,8 +773,26 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
 
   const load = useCallback(async () => {
     setError(null)
+    // Smart minimum-loading-time UX:
+    //   • Hard refresh (Ctrl+Shift+R, first visit) bypasses the browser HTTP
+    //     cache → Supabase round-trips take 200–800 ms → we enforce a 1.2 s
+    //     minimum so the spinner + tagline are clearly visible.
+    //   • Normal refresh hits the browser cache → Supabase responses come
+    //     back in ~30–80 ms → we DON'T pad, so the user gets the page
+    //     basically instantly.
+    // JavaScript can't directly tell the two refreshes apart, but elapsed
+    // fetch time is a clean proxy: anything under FAST_THRESHOLD_MS was
+    // almost certainly served from cache, so skip the hold.
+    const MIN_LOAD_MS = 1200
+    const FAST_THRESHOLD_MS = 150
+    const startedAt = performance.now()
     try {
       const [c, t] = await Promise.all([fetchLandingContent(), fetchTeamMembers()])
+      const elapsed = performance.now() - startedAt
+      if (elapsed > FAST_THRESHOLD_MS) {
+        const remaining = MIN_LOAD_MS - elapsed
+        if (remaining > 0) await new Promise(r => setTimeout(r, remaining))
+      }
       setContent(c)
       setTeam(t)
     } catch (e) {
@@ -917,7 +935,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
             that by anchoring the nav at top: 0 and using pt-14 to push
             the text down to its prior visual position. */}
         <nav
-          className="absolute left-0 right-0 z-50 flex items-center justify-center gap-6 sm:gap-10 pt-14 pb-4 px-6 pointer-events-none"
+          className="absolute left-0 right-0 z-50 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:gap-10 pt-14 pb-4 px-4 sm:px-6 pointer-events-none"
           style={{
             top: 0,
             background:
