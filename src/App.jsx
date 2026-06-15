@@ -4,7 +4,7 @@ import { supabase, supabasePublic } from './supabaseClient'
 import LandingPage from './components/LandingPage'
 import {
   LayoutDashboard, FolderKanban, GanttChart as GanttIcon, LogIn, LogOut,
-  Users, Plus, Pencil, Trash2, X, ChevronRight, AlertTriangle,
+  Users, Plus, Pencil, Trash2, X, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, AlertTriangle,
   CheckCircle2, Clock, Pause, Target, Shield, Eye, ArrowLeft, Save,
   RefreshCw, Search, Menu, AlertCircle, ExternalLink, BarChart3,
   ListChecks, FileWarning, Info, ChevronDown, ChevronUp,
@@ -328,9 +328,9 @@ function UatStatusBadge({ status }) {
   return <Badge colors={UAT_STATUS_COLORS[status] || UAT_STATUS_COLORS['Not Started']}>{status}</Badge>
 }
 
-function ProgressBar({ value, className = '', height = 'h-2' }) {
+function ProgressBar({ value, className = '', height = 'h-2', gold = false }) {
   const num = value === 'Ongoing' ? 50 : parseInt(value) || 0
-  const color = num >= 100 ? 'bg-blue-500' : num >= 75 ? 'bg-emerald-500' : num >= 40 ? 'bg-amber-500' : 'bg-brand-500'
+  const color = gold ? 'dash-pbar-gold' : num >= 100 ? 'bg-blue-500' : num >= 75 ? 'bg-emerald-500' : num >= 40 ? 'bg-amber-500' : 'bg-brand-500'
   return <div className={`flex items-center gap-2 ${className}`}>
     <div className={`flex-1 ${height} bg-surface-200 rounded-full overflow-hidden`}>
       <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(num, 100)}%` }} />
@@ -619,6 +619,74 @@ async function exportAllToExcel(projects) {
   XLSX.writeFile(wb, `EBS_Projects_Export_${today}.xlsx`)
 }
 
+// Draws a gold "network globe" on a canvas and returns a PNG data URL, so the
+// MBR title slide can embed a real graphic instead of a flat PowerPoint circle.
+function makeGlobeDataURL() {
+  const S = 900
+  const c = document.createElement('canvas')
+  c.width = S; c.height = S
+  const ctx = c.getContext('2d')
+  const cx = S / 2, cy = S / 2, R = S * 0.42
+  const TAU = Math.PI * 2
+
+  // faint sphere shading
+  const grad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.15, cx, cy, R)
+  grad.addColorStop(0, 'rgba(70,50,18,0.40)')
+  grad.addColorStop(1, 'rgba(10,8,4,0)')
+  ctx.fillStyle = grad
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill()
+
+  // rim with glow
+  ctx.strokeStyle = 'rgba(216,172,92,0.9)'; ctx.lineWidth = 2
+  ctx.shadowColor = 'rgba(232,202,124,0.75)'; ctx.shadowBlur = 18
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke()
+  ctx.shadowBlur = 0
+
+  // meridians + latitudes (wireframe)
+  ctx.strokeStyle = 'rgba(190,150,80,0.45)'; ctx.lineWidth = 1
+  for (const f of [0.82, 0.52, 0.24]) { ctx.beginPath(); ctx.ellipse(cx, cy, R * f, R, 0, 0, TAU); ctx.stroke() }
+  for (const f of [0.82, 0.52, 0.24]) { ctx.beginPath(); ctx.ellipse(cx, cy, R, R * f, 0, 0, TAU); ctx.stroke() }
+  ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke()
+
+  // network nodes + links
+  const nodes = [[-.2,-.5],[.3,-.55],[.55,-.2],[.1,-.1],[-.45,-.05],[.4,.2],[-.15,.35],[.28,.5],[-.5,.4],[.58,.42],[0,.68],[-.3,.08],[.2,-.3]]
+  const links = [[0,3],[3,5],[5,9],[1,2],[6,7],[4,11],[7,10],[3,12],[11,6]]
+  ctx.strokeStyle = 'rgba(210,170,90,0.32)'; ctx.lineWidth = 0.9
+  for (const [a, b] of links) {
+    const A = nodes[a], B = nodes[b]
+    ctx.beginPath(); ctx.moveTo(cx + A[0] * R, cy + A[1] * R); ctx.lineTo(cx + B[0] * R, cy + B[1] * R); ctx.stroke()
+  }
+  for (const [dx, dy] of nodes) {
+    const x = cx + dx * R, y = cy + dy * R
+    ctx.shadowColor = 'rgba(240,210,130,0.9)'; ctx.shadowBlur = 12
+    ctx.fillStyle = 'rgba(245,220,140,0.96)'
+    ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.fill()
+  }
+  ctx.shadowBlur = 0
+  return c.toDataURL('image/png')
+}
+
+// Fetch a public asset and return it as a data URL (so pptxgenjs can embed it
+// reliably). Tries each candidate path; returns null if none load.
+async function loadImageDataURL(urls) {
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' })
+      if (!res.ok) continue
+      const blob = await res.blob()
+      if (!blob || blob.size < 200) continue
+      return await new Promise((resolve, reject) => {
+        const r = new FileReader()
+        r.onloadend = () => resolve(r.result)
+        r.onerror = reject
+        r.readAsDataURL(blob)
+      })
+    } catch { /* try next candidate */ }
+  }
+  return null
+}
+
 // ─── PPTX Report Generation ────────────────────────────────
 async function generateReport(projects) {
   const PptxGenJS = await loadPptx()
@@ -626,9 +694,11 @@ async function generateReport(projects) {
   pptx.defineLayout({ name: 'CUSTOM', width: 13.33, height: 7.5 })
   pptx.layout = 'CUSTOM'
 
-  const BG_DARK = '0F1320'
+  const BG_DARK = '171310'        // espresso — matches the app's dark theme
   const BG_LIGHT = 'F8F9FC'
-  const BRAND = '4263EB'
+  const BRAND = 'CAA15A'          // champagne — matches the app's gold accent
+  const CHAMP = 'E6CF94'          // lighter champagne for eyebrows / accents
+  const INK = '2A2113'            // dark ink for text sitting on gold fills
   const WHITE = 'FFFFFF'
   const GRAY = '6B7A99'
   const GREEN = '10B981'
@@ -644,107 +714,218 @@ async function generateReport(projects) {
   const quarter = Math.ceil((now.getMonth() + 1) / 3)
   const fy = now.getMonth() >= 3 ? currentYear : currentYear - 1
 
-  // ─── Slide 1: Title ───
-  const s1 = pptx.addSlide()
-  s1.background = { color: BG_DARK }
-  s1.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: 0.6, y: 1.8, w: 6.5, h: 3.5, rectRadius: 0.3, fill: { color: '1A202C' } })
-  s1.addText(`Q${quarter} FY${String(fy).slice(2)}`, { x: 1.0, y: 2.2, w: 5.5, h: 0.6, fontSize: 18, color: GRAY, fontFace: 'Calibri' })
-  s1.addText('Monthly Business Performance Review', { x: 1.0, y: 2.8, w: 5.5, h: 1.0, fontSize: 28, color: WHITE, bold: true, fontFace: 'Calibri' })
-  s1.addText(`${currentMonth} ${currentYear}`, { x: 1.0, y: 4.4, w: 5.5, h: 0.5, fontSize: 14, color: GRAY, fontFace: 'Calibri' })
+  // Pull risks so the Risks slide reflects real data (projects are passed in).
+  let allRisks = []
+  try {
+    const { data: rs } = await supabasePublic.from('risks').select('*').order('project_id')
+    allRisks = rs || []
+  } catch { allRisks = [] }
+  const pNameById = Object.fromEntries(projects.map(p => [p.id, p.project_name]))
 
-  // ─── Slide 2: Section ───
-  const s2 = pptx.addSlide()
-  s2.background = { color: WHITE }
-  s2.addText('EBS Updates', { x: 2, y: 2.8, w: 9, h: 1.2, fontSize: 40, bold: true, color: '1A202C', fontFace: 'Calibri', align: 'center' })
-  s2.addText(String(projects.length), { x: 12.0, y: 6.5, w: 1, h: 0.6, fontSize: 14, color: GRAY, fontFace: 'Calibri', align: 'right' })
+  const FONT = 'Calibri'
+  const CARD = 'FFFFFF'
+  const CARD_BORDER = 'E6E2DA'
+  const PAGE_BG = 'F7F6F3'
+  const HEAD_DARK = '1F1A14'
+  const TXT = '333333'
+  const statusHex = { 'On Track': GREEN, 'At Risk': AMBER, 'Delayed': RED, 'Completed': BLUE, 'On Hold': SLATE }
+  const impactHex = { High: RED, Medium: AMBER, Low: GREEN }
 
-  // ─── Slide 3: Data Slide ───
-  const s3 = pptx.addSlide()
-  s3.background = { color: BG_LIGHT }
-
-  // Header
-  s3.addText('EBS Updates', { x: 0.4, y: 0.2, w: 4, h: 0.5, fontSize: 20, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  s3.addText(`EBS Project Portfolio  |  ${currentMonth} ${currentYear}  |  Monthly Business Review`, { x: 0.4, y: 0.65, w: 8, h: 0.35, fontSize: 9, color: GRAY, fontFace: 'Calibri' })
-
-  // Stats
-  const onTrack = projects.filter(p => p.status === 'On Track').length
-  const delayed = projects.filter(p => p.status === 'Delayed').length
-  const onHold = projects.filter(p => p.status === 'On Hold').length
-  const completed = projects.filter(p => p.status === 'Completed').length
+  // ─── Derived metrics (real data) ───
   const total = projects.length
+  const cnt = (s) => projects.filter(p => p.status === s).length
+  const onTrack = cnt('On Track'), completed = cnt('Completed')
+  const numPct = (v) => v === 'Ongoing' ? 50 : parseInt(v) || 0
+  const pctOf = (n) => total ? Math.round((n / total) * 100) : 0
+  const deliveryHealth = pctOf(onTrack + completed)
+  const completionRate = total ? Math.round(projects.reduce((s, p) => s + numPct(p.percent_complete), 0) / total) : 0
+  const highRisks = allRisks.filter(r => (r.impact || '').toLowerCase() === 'high')
+  const decisions = projects.filter(p => p.actions_needed && p.actions_needed.trim().length > 8)
+  const highlights = projects.filter(p => p.status === 'Completed' || (numPct(p.percent_complete) >= 80 && p.status !== 'On Hold'))
+  const focus = projects.filter(p => ['Planning', 'Execution', 'UAT', 'Go-Live'].includes(p.phase) && p.status !== 'Completed')
+  const todayStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const criticalRisks = highRisks.length || projects.filter(p => p.status === 'Delayed').length
 
-  // Portfolio Status box
-  s3.addText('Portfolio Status', { x: 0.4, y: 1.15, w: 2.8, h: 0.35, fontSize: 11, bold: true, color: '1A202C', fontFace: 'Calibri' })
+  // ─── Shared helpers ───
+  const safeChart = (slide, ...args) => { try { slide.addChart(...args) } catch (e) { console.error('MBR chart skipped:', e) } }
+  const card = (slide, x, y, w, h) => slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.08, fill: { color: CARD }, line: { color: CARD_BORDER, width: 1 } })
+  const slideHeader = (slide, num, title) => {
+    slide.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: 0.4, y: 0.32, w: 0.36, h: 0.36, rectRadius: 0.06, fill: { color: HEAD_DARK } })
+    slide.addText(String(num), { x: 0.4, y: 0.32, w: 0.36, h: 0.36, fontSize: 15, bold: true, color: CHAMP, align: 'center', valign: 'middle', fontFace: FONT })
+    slide.addText(title, { x: 0.92, y: 0.3, w: 9, h: 0.42, fontSize: 18, bold: true, color: HEAD_DARK, valign: 'middle', fontFace: FONT, charSpacing: 1 })
+    slide.addText('EBS', { x: 11.6, y: 0.3, w: 1.35, h: 0.42, fontSize: 17, bold: true, color: BRAND, align: 'right', valign: 'middle', fontFace: FONT })
+    slide.addShape(pptx.shapes.RECTANGLE, { x: 0.4, y: 0.86, w: 12.53, h: 0.012, fill: { color: CARD_BORDER } })
+  }
 
-  const statItems = [
-    { label: 'On Track', value: onTrack, color: GREEN },
-    { label: 'Delayed', value: delayed, color: RED },
-    { label: 'On Hold', value: onHold, color: SLATE },
-    { label: 'Completed', value: completed, color: BLUE },
+  // ─── Slide 1: Title (dark, with network globe) ───
+  // Prefer the supplied globe artwork (drop it in public/ as mbr-globe.png);
+  // otherwise fall back to a canvas-drawn network globe so the deck still looks good.
+  const globeBg = await loadImageDataURL(['./mbr-globe.png', './mbr-globe.jpg', './mbr-globe.jpeg'])
+  const globeImg = globeBg ? null : (() => { try { return makeGlobeDataURL() } catch (e) { console.error('globe skipped:', e); return null } })()
+  const t = pptx.addSlide(); t.background = { color: '0B0907' }
+  if (globeBg) { try { t.addImage({ data: globeBg, x: 0, y: 0, w: 13.33, h: 7.5 }) } catch (e) { console.error('globe bg skipped:', e) } }
+  else if (globeImg) { try { t.addImage({ data: globeImg, x: 7.1, y: 0.55, w: 6.3, h: 6.3 }) } catch (e) { console.error('globe image skipped:', e) } }
+  // Eyebrow + gold underline
+  t.addText('ENTERPRISE BUSINESS SOLUTIONS', { x: 0.72, y: 1.45, w: 6, h: 0.3, fontSize: 13, color: CHAMP, charSpacing: 3, fontFace: FONT })
+  t.addShape(pptx.shapes.RECTANGLE, { x: 0.74, y: 1.92, w: 0.55, h: 0.03, fill: { color: BRAND } })
+  // Title
+  t.addText('MONTHLY\nBUSINESS REVIEW', { x: 0.68, y: 2.45, w: 7.4, h: 1.9, fontSize: 46, bold: true, color: WHITE, lineSpacingMultiple: 0.98, fontFace: FONT })
+  // Divider
+  t.addShape(pptx.shapes.RECTANGLE, { x: 0.74, y: 4.55, w: 1.7, h: 0.022, fill: { color: '5A4A2A' } })
+  // Month / scope
+  t.addText(`${currentMonth} ${currentYear}`, { x: 0.7, y: 4.78, w: 6, h: 0.5, fontSize: 22, bold: true, color: CHAMP, fontFace: FONT })
+  t.addText('EBS Projects', { x: 0.74, y: 5.32, w: 6, h: 0.35, fontSize: 13, color: '9A8E78', fontFace: FONT })
+  // Prepared-for / Date with gold ring markers
+  t.addShape(pptx.shapes.OVAL, { x: 0.74, y: 5.98, w: 0.36, h: 0.36, fill: { transparency: 100, color: '000000' }, line: { color: BRAND, width: 1 } })
+  t.addText('Prepared for:', { x: 1.26, y: 5.9, w: 5, h: 0.24, fontSize: 9, color: '9A8E78', fontFace: FONT })
+  t.addText('Executive Leadership Team', { x: 1.26, y: 6.12, w: 5, h: 0.3, fontSize: 12, color: WHITE, fontFace: FONT })
+  t.addShape(pptx.shapes.OVAL, { x: 0.74, y: 6.55, w: 0.36, h: 0.36, fill: { transparency: 100, color: '000000' }, line: { color: BRAND, width: 1 } })
+  t.addText('Date:', { x: 1.26, y: 6.47, w: 5, h: 0.24, fontSize: 9, color: '9A8E78', fontFace: FONT })
+  t.addText(todayStr, { x: 1.26, y: 6.69, w: 5, h: 0.3, fontSize: 12, color: WHITE, fontFace: FONT })
+
+  // ─── Slide 2: Executive Summary ───
+  const es = pptx.addSlide(); es.background = { color: PAGE_BG }
+  slideHeader(es, 1, 'EXECUTIVE SUMMARY')
+  es.addText(`${currentMonth} ${currentYear}`, { x: 0.92, y: 0.92, w: 4, h: 0.25, fontSize: 9, color: BRAND, fontFace: FONT })
+  const kpis = [
+    { label: 'Active Projects', value: String(total), color: CHAMP },
+    { label: 'Delivery Health', value: deliveryHealth + '%', color: GREEN },
+    { label: 'Completion Rate', value: completionRate + '%', color: '7DB3F2' },
+    { label: 'Critical Risks', value: String(criticalRisks), color: 'F87171' },
+    { label: 'Decisions Needed', value: String(decisions.length), color: 'FBBF24' },
   ]
-  statItems.forEach((item, i) => {
-    const y = 1.6 + i * 0.42
-    s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: 0.5, y: y, w: 0.2, h: 0.25, rectRadius: 0.04, fill: { color: item.color } })
-    s3.addText(item.label, { x: 0.85, y: y, w: 1.5, h: 0.25, fontSize: 10, color: '1A202C', fontFace: 'Calibri' })
-    s3.addText(String(item.value), { x: 2.5, y: y, w: 0.6, h: 0.25, fontSize: 12, bold: true, color: '1A202C', fontFace: 'Calibri', align: 'right' })
+  kpis.forEach((k, i) => {
+    const x = 0.5 + i * 2.5
+    es.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x, y: 1.3, w: 2.3, h: 1.35, rectRadius: 0.1, fill: { color: HEAD_DARK } })
+    es.addText(k.value, { x, y: 1.45, w: 2.3, h: 0.65, fontSize: 28, bold: true, color: k.color, align: 'center', fontFace: FONT })
+    es.addText(k.label, { x: x + 0.1, y: 2.12, w: 2.1, h: 0.4, fontSize: 10, color: 'C9C2B5', align: 'center', fontFace: FONT })
+  })
+  // Key highlights
+  card(es, 0.5, 2.9, 7.2, 3.95)
+  es.addText('KEY HIGHLIGHTS', { x: 0.75, y: 3.05, w: 6, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  const hiArr = highlights.length
+    ? highlights.slice(0, 7).map(p => ({ text: `${p.project_name} — ${(p.status === 'Completed' || numPct(p.percent_complete) >= 100) ? 'Completed' : numPct(p.percent_complete) + '% complete'}`, options: { bullet: { code: '2713' }, color: '3CA36B' } }))
+    : [{ text: 'No highlights to report this month', options: { color: '888888' } }]
+  es.addText(hiArr, { x: 0.8, y: 3.45, w: 6.7, h: 3.25, fontSize: 11, color: TXT, valign: 'top', lineSpacingMultiple: 1.5, fontFace: FONT })
+  // Overall delivery health donut
+  card(es, 7.95, 2.9, 4.85, 3.95)
+  es.addText('OVERALL DELIVERY HEALTH', { x: 8.2, y: 3.05, w: 4.4, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  safeChart(es, 'doughnut', [{ name: 'Health', labels: ['On Track', 'Remaining'], values: [deliveryHealth, Math.max(0, 100 - deliveryHealth)] }],
+    { x: 8.55, y: 3.55, w: 3.6, h: 3.0, holeSize: 72, showLegend: false, showValue: false, chartColors: [GREEN, 'E6E2DA'] })
+  es.addText(`${deliveryHealth}%`, { x: 8.55, y: 4.65, w: 3.6, h: 0.6, fontSize: 30, bold: true, color: HEAD_DARK, align: 'center', fontFace: FONT })
+  es.addText('On Track', { x: 8.55, y: 5.2, w: 3.6, h: 0.3, fontSize: 11, color: GRAY, align: 'center', fontFace: FONT })
+
+  // ─── Slide 3: Portfolio Health ───
+  const ph = pptx.addSlide(); ph.background = { color: PAGE_BG }
+  slideHeader(ph, 2, 'PORTFOLIO HEALTH')
+  // Status doughnut
+  card(ph, 0.5, 1.1, 6.0, 3.0)
+  ph.addText('PROJECT STATUS', { x: 0.7, y: 1.25, w: 4, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  const stData = ['On Track', 'Completed', 'On Hold', 'Delayed', 'At Risk'].map(s => ({ s, v: cnt(s) })).filter(d => d.v > 0)
+  safeChart(ph, 'doughnut', [{ name: 'Status', labels: stData.map(d => d.s), values: stData.map(d => d.v) }],
+    { x: 0.6, y: 1.55, w: 2.5, h: 2.4, holeSize: 62, showLegend: false, showValue: false, chartColors: stData.map(d => statusHex[d.s]) })
+  ph.addText(String(total), { x: 0.6, y: 2.45, w: 2.5, h: 0.5, fontSize: 22, bold: true, color: HEAD_DARK, align: 'center', fontFace: FONT })
+  ph.addText('Total', { x: 0.6, y: 2.92, w: 2.5, h: 0.3, fontSize: 9, color: GRAY, align: 'center', fontFace: FONT })
+  stData.forEach((d, i) => {
+    const yy = 1.7 + i * 0.42
+    ph.addShape(pptx.shapes.RECTANGLE, { x: 3.5, y: yy, w: 0.16, h: 0.16, fill: { color: statusHex[d.s] } })
+    ph.addText(d.s, { x: 3.75, y: yy - 0.05, w: 1.7, h: 0.28, fontSize: 9, color: TXT, fontFace: FONT })
+    ph.addText(`${d.v} (${pctOf(d.v)}%)`, { x: 5.4, y: yy - 0.05, w: 0.95, h: 0.28, fontSize: 9, bold: true, color: TXT, align: 'right', fontFace: FONT })
+  })
+  // Department bar
+  card(ph, 6.7, 1.1, 6.2, 3.0)
+  ph.addText('PROJECTS BY DEPARTMENT', { x: 6.9, y: 1.25, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  const deptCount = {}
+  projects.forEach(p => { const d = p.dept_module || 'Unassigned'; deptCount[d] = (deptCount[d] || 0) + 1 })
+  const depts = Object.entries(deptCount).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  safeChart(ph, 'bar', [{ name: 'Projects', labels: depts.map(d => d[0].length > 20 ? d[0].slice(0, 20) + '…' : d[0]), values: depts.map(d => d[1]) }],
+    { x: 6.85, y: 1.55, w: 5.9, h: 2.45, barDir: 'bar', showLegend: false, showValue: true, dataLabelColor: TXT, dataLabelFontSize: 9, chartColors: [BRAND], catAxisLabelColor: '555555', catAxisLabelFontSize: 9, valAxisHidden: true })
+  // Completion rate + delivery health summary
+  card(ph, 0.5, 4.3, 6.0, 2.55)
+  ph.addText('COMPLETION RATE', { x: 0.7, y: 4.45, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  ph.addText(`${completionRate}%`, { x: 0.7, y: 4.9, w: 5, h: 1.0, fontSize: 48, bold: true, color: BRAND, fontFace: FONT })
+  ph.addText('Average % complete across all active projects', { x: 0.7, y: 5.95, w: 5.6, h: 0.4, fontSize: 10, color: GRAY, fontFace: FONT })
+  card(ph, 6.7, 4.3, 6.2, 2.55)
+  ph.addText('DELIVERY HEALTH', { x: 6.9, y: 4.45, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  ph.addText(`${deliveryHealth}%`, { x: 6.9, y: 4.9, w: 5, h: 1.0, fontSize: 48, bold: true, color: GREEN, fontFace: FONT })
+  ph.addText('Share of projects On Track or Completed', { x: 6.9, y: 5.95, w: 5.8, h: 0.4, fontSize: 10, color: GRAY, fontFace: FONT })
+
+  // ─── Slide 4: Risks & Issues ───
+  const rk = pptx.addSlide(); rk.background = { color: PAGE_BG }
+  slideHeader(rk, 3, 'RISKS & ISSUES')
+  let riskSrc = allRisks.length
+    ? allRisks.map(r => ({ project: pNameById[r.project_id] || '—', issue: r.description || '—', sev: r.impact || '—', like: r.likelihood || '—', owner: r.owner || '—' }))
+    : projects.filter(p => ['Delayed', 'At Risk', 'On Hold'].includes(p.status)).map(p => ({ project: p.project_name, issue: p.key_risks || '—', sev: p.status === 'Delayed' ? 'High' : p.status === 'At Risk' ? 'Medium' : 'Low', like: '—', owner: p.business_owner || '—' }))
+  const sevRank = { High: 0, Medium: 1, Low: 2 }
+  riskSrc = riskSrc.sort((a, b) => (sevRank[a.sev] ?? 3) - (sevRank[b.sev] ?? 3)).slice(0, 8)
+  const cellOpt = { fontFace: FONT, fontSize: 10, color: TXT, valign: 'middle' }
+  const rkHead = ['Project', 'Issue / Risk', 'Severity', 'Likelihood', 'Owner'].map(h => ({ text: h, options: { ...cellOpt, bold: true, color: WHITE, fill: { color: HEAD_DARK } } }))
+  const rkBody = riskSrc.length
+    ? riskSrc.map(r => [
+        { text: r.project, options: { ...cellOpt, bold: true } },
+        { text: String(r.issue).slice(0, 100), options: cellOpt },
+        { text: r.sev, options: { ...cellOpt, bold: true, color: impactHex[r.sev] || TXT } },
+        { text: r.like, options: cellOpt },
+        { text: r.owner, options: cellOpt },
+      ])
+    : [[{ text: 'No active risks recorded.', options: { ...cellOpt, colspan: 5, align: 'center' } }]]
+  rk.addTable([rkHead, ...rkBody], { x: 0.5, y: 1.15, w: 12.43, colW: [2.9, 4.6, 1.5, 1.6, 1.83], border: { type: 'solid', pt: 0.5, color: CARD_BORDER }, fill: { color: CARD }, rowH: 0.5, autoPage: false })
+  rk.addText(`${criticalRisks} high-severity item${criticalRisks === 1 ? '' : 's'} require immediate attention`, { x: 0.5, y: 6.6, w: 10, h: 0.35, fontSize: 10, italic: true, color: RED, fontFace: FONT })
+
+  // ─── Slide 5: Decisions Required ───
+  const dc = pptx.addSlide(); dc.background = { color: PAGE_BG }
+  slideHeader(dc, 4, 'DECISIONS REQUIRED')
+  const dcSrc = decisions.slice(0, 8)
+  const dcHead = ['Decision Needed', 'Project', 'Impact', 'Target', 'Owner'].map(h => ({ text: h, options: { ...cellOpt, bold: true, color: WHITE, fill: { color: HEAD_DARK } } }))
+  const dcBody = dcSrc.length
+    ? dcSrc.map(p => [
+        { text: String(p.actions_needed).trim().slice(0, 110), options: cellOpt },
+        { text: p.project_name, options: { ...cellOpt, bold: true } },
+        { text: p.business_impact || '—', options: { ...cellOpt, bold: true, color: impactHex[p.business_impact] || TXT } },
+        { text: p.end_date || p.est_end || '—', options: cellOpt },
+        { text: p.business_owner || '—', options: cellOpt },
+      ])
+    : [[{ text: 'No decisions pending.', options: { ...cellOpt, colspan: 5, align: 'center' } }]]
+  dc.addTable([dcHead, ...dcBody], { x: 0.5, y: 1.15, w: 12.43, colW: [4.5, 3.0, 1.6, 1.6, 1.73], border: { type: 'solid', pt: 0.5, color: CARD_BORDER }, fill: { color: CARD }, rowH: 0.5, autoPage: false })
+  dc.addText('Timely decisions are critical to maintain delivery momentum', { x: 0.5, y: 6.6, w: 10, h: 0.35, fontSize: 10, italic: true, color: GRAY, fontFace: FONT })
+
+  // ─── Slide 6: Project Spotlight ───
+  const sp = pptx.addSlide(); sp.background = { color: PAGE_BG }
+  slideHeader(sp, 5, 'PROJECT SPOTLIGHT')
+  const spot = [...projects].sort((a, b) => numPct(b.percent_complete) - numPct(a.percent_complete)).slice(0, 3)
+  spot.forEach((p, i) => {
+    const x = 0.5 + i * 4.18
+    card(sp, x, 1.15, 3.9, 5.4)
+    sp.addText(p.project_name, { x: x + 0.25, y: 1.35, w: 3.4, h: 0.7, fontSize: 14, bold: true, color: HEAD_DARK, valign: 'top', fontFace: FONT })
+    sp.addText(p.status || '—', { x: x + 0.25, y: 2.05, w: 3.4, h: 0.3, fontSize: 10, bold: true, color: statusHex[p.status] || GRAY, fontFace: FONT })
+    sp.addText(`${numPct(p.percent_complete)}%`, { x: x + 0.25, y: 2.5, w: 3.4, h: 0.7, fontSize: 36, bold: true, color: HEAD_DARK, fontFace: FONT })
+    sp.addText('Complete', { x: x + 0.25, y: 3.2, w: 3.4, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
+    sp.addText('PHASE', { x: x + 0.25, y: 3.75, w: 3.4, h: 0.25, fontSize: 8, bold: true, color: GRAY, charSpacing: 1, fontFace: FONT })
+    sp.addText(p.phase || '—', { x: x + 0.25, y: 4.0, w: 3.4, h: 0.3, fontSize: 11, color: TXT, fontFace: FONT })
+    sp.addText('BUSINESS IMPACT', { x: x + 0.25, y: 4.45, w: 3.4, h: 0.25, fontSize: 8, bold: true, color: GRAY, charSpacing: 1, fontFace: FONT })
+    sp.addText(p.objective ? String(p.objective).slice(0, 120) : (p.business_impact ? `${p.business_impact} impact` : '—'), { x: x + 0.25, y: 4.7, w: 3.4, h: 1.6, fontSize: 9, color: TXT, valign: 'top', lineSpacingMultiple: 1.3, fontFace: FONT })
   })
 
-  // Total circle
-  s3.addShape(pptx.shapes.OVAL, { x: 0.7, y: 3.5, w: 1.8, h: 1.4, fill: { color: BRAND } })
-  s3.addText(`${total} Projects`, { x: 0.7, y: 3.7, w: 1.8, h: 0.7, fontSize: 18, bold: true, color: WHITE, fontFace: 'Calibri', align: 'center' })
-  s3.addText(`Total Active Portfolio  |  ${currentMonth.slice(0,3)} ${currentYear}`, { x: 0.3, y: 4.35, w: 2.6, h: 0.4, fontSize: 7, color: GRAY, fontFace: 'Calibri', align: 'center' })
-
-  // ─── Content columns ───
-  const colX = [0.4, 3.6, 6.8, 10.0]
-  const colW = [3.0, 3.0, 3.0, 3.0]
-  const secY = 5.2
-
-  // New this month (projects started in current month)
-  const newThisMonth = projects.filter(p => {
-    if (!p.start_date) return false
-    const sd = p.start_date
-    const m = now.getMonth() + 1
-    const y = now.getFullYear()
-    return sd === `${y}-${String(m).padStart(2, '0')}`
-  })
-  s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: colX[0], y: secY, w: colW[0], h: 2.0, rectRadius: 0.15, fill: { color: WHITE }, shadow: { type: 'outer', blur: 4, opacity: 0.1, offset: 2 } })
-  s3.addText('New This Month', { x: colX[0] + 0.15, y: secY + 0.1, w: colW[0] - 0.3, h: 0.35, fontSize: 10, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  const newText = newThisMonth.length > 0 ? newThisMonth.map(p => `• ${p.project_name}`).join('\n') : '• No new projects this month'
-  s3.addText(newText, { x: colX[0] + 0.15, y: secY + 0.45, w: colW[0] - 0.3, h: 1.4, fontSize: 7.5, color: GRAY, fontFace: 'Calibri', valign: 'top', lineSpacingMultiple: 1.3 })
-
-  // Highlights (completed + high progress)
-  const highlights = projects.filter(p => p.status === 'Completed' || (parseInt(p.percent_complete) >= 80 && p.status !== 'On Hold'))
-  s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: colX[1], y: 1.15, w: colW[1], h: 3.85, rectRadius: 0.15, fill: { color: WHITE }, shadow: { type: 'outer', blur: 4, opacity: 0.1, offset: 2 } })
-  s3.addText(`${currentMonth} Highlights`, { x: colX[1] + 0.15, y: 1.25, w: colW[1] - 0.3, h: 0.35, fontSize: 10, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  const hlText = highlights.slice(0, 8).map(p => `• ${p.project_name} — ${p.percent_complete === '100' ? 'Completed' : p.percent_complete + '% complete'}`).join('\n')
-  s3.addText(hlText || '• No highlights', { x: colX[1] + 0.15, y: 1.65, w: colW[1] - 0.3, h: 3.2, fontSize: 7.5, color: GRAY, fontFace: 'Calibri', valign: 'top', lineSpacingMultiple: 1.3 })
-
-  // Risks & Issues
-  const riskyProjects = projects.filter(p => p.status === 'Delayed' || p.status === 'At Risk' || p.status === 'On Hold')
-  s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: colX[2], y: 1.15, w: colW[2], h: 3.85, rectRadius: 0.15, fill: { color: WHITE }, shadow: { type: 'outer', blur: 4, opacity: 0.1, offset: 2 } })
-  s3.addText('Risks & Issues', { x: colX[2] + 0.15, y: 1.25, w: colW[2] - 0.3, h: 0.35, fontSize: 10, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  const riskText = riskyProjects.slice(0, 6).map(p => {
-    const reason = p.key_risks ? ` — ${p.key_risks.substring(0, 80)}` : ''
-    return `• ${p.project_name}${reason}`
-  }).join('\n')
-  s3.addText(riskText || '• No active risks', { x: colX[2] + 0.15, y: 1.65, w: colW[2] - 0.3, h: 3.2, fontSize: 7.5, color: GRAY, fontFace: 'Calibri', valign: 'top', lineSpacingMultiple: 1.3 })
-
-  // Focus this month (active execution/UAT projects)
-  const focusProjects = projects.filter(p => (p.phase === 'Execution' || p.phase === 'UAT') && p.status === 'On Track')
-  s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: colX[1], y: secY, w: colW[1], h: 2.0, rectRadius: 0.15, fill: { color: WHITE }, shadow: { type: 'outer', blur: 4, opacity: 0.1, offset: 2 } })
-  s3.addText(`${currentMonth} ${currentYear} Focus`, { x: colX[1] + 0.15, y: secY + 0.1, w: colW[1] - 0.3, h: 0.35, fontSize: 10, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  const focusText = focusProjects.slice(0, 6).map(p => `• ${p.project_name} — ${p.percent_complete || '0'}%`).join('\n')
-  s3.addText(focusText || '• No items in focus', { x: colX[1] + 0.15, y: secY + 0.45, w: colW[1] - 0.3, h: 1.4, fontSize: 7.5, color: GRAY, fontFace: 'Calibri', valign: 'top', lineSpacingMultiple: 1.3 })
-
-  // Decisions Required
-  const decisionsNeeded = projects.filter(p => p.actions_needed && p.actions_needed.length > 10)
-  s3.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x: colX[2], y: secY, w: colW[2] + 0.3, h: 2.0, rectRadius: 0.15, fill: { color: WHITE }, shadow: { type: 'outer', blur: 4, opacity: 0.1, offset: 2 } })
-  s3.addText('Decisions Required', { x: colX[2] + 0.15, y: secY + 0.1, w: colW[2], h: 0.35, fontSize: 10, bold: true, color: '1A202C', fontFace: 'Calibri' })
-  const decText = decisionsNeeded.slice(0, 5).map(p => `• ${p.project_name} — ${p.actions_needed.substring(0, 80)}`).join('\n')
-  s3.addText(decText || '• No pending decisions', { x: colX[2] + 0.15, y: secY + 0.45, w: colW[2], h: 1.4, fontSize: 7.5, color: GRAY, fontFace: 'Calibri', valign: 'top', lineSpacingMultiple: 1.3 })
-
-  // Slide number
-  s3.addText('3', { x: 12.5, y: 6.9, w: 0.5, h: 0.4, fontSize: 10, color: GRAY, fontFace: 'Calibri', align: 'right' })
+  // ─── Slide 7: Next Month Focus (+ footer) ───
+  const nf = pptx.addSlide(); nf.background = { color: PAGE_BG }
+  slideHeader(nf, 6, 'NEXT MONTH FOCUS')
+  card(nf, 0.5, 1.15, 6.1, 5.2)
+  nf.addText('KEY PRIORITIES', { x: 0.75, y: 1.35, w: 5, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  const priNames = Array.from(new Set([...decisions.map(p => p.project_name), ...focus.map(p => p.project_name)])).slice(0, 6)
+  const priArr = priNames.length
+    ? priNames.map(n => ({ text: n, options: { bullet: { type: 'number' }, color: TXT } }))
+    : [{ text: 'No priorities flagged', options: { color: '888888' } }]
+  nf.addText(priArr, { x: 0.85, y: 1.8, w: 5.6, h: 4.4, fontSize: 12, color: TXT, valign: 'top', lineSpacingMultiple: 1.7, fontFace: FONT })
+  card(nf, 6.85, 1.15, 6.05, 5.2)
+  nf.addText('EXPECTED OUTCOMES', { x: 7.1, y: 1.35, w: 5, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
+  const outcomeSrc = (focus.filter(p => p.objective).concat(highlights.filter(p => p.objective))).slice(0, 6)
+  const outArr = outcomeSrc.length
+    ? outcomeSrc.map(p => ({ text: String(p.objective).slice(0, 90), options: { bullet: { code: '2713' }, color: '3CA36B' } }))
+    : [{ text: 'Continue delivery against the current roadmap', options: { bullet: { code: '2713' }, color: '3CA36B' } }]
+  nf.addText(outArr, { x: 7.2, y: 1.8, w: 5.5, h: 4.4, fontSize: 11, color: TXT, valign: 'top', lineSpacingMultiple: 1.6, fontFace: FONT })
+  nf.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 6.9, w: 13.33, h: 0.6, fill: { color: BG_DARK } })
+  nf.addText('Thank you.  Together, driving transformation and delivering value.', { x: 0.5, y: 6.9, w: 9, h: 0.6, fontSize: 11, color: 'C9C2B5', valign: 'middle', fontFace: FONT })
+  nf.addText('EBS', { x: 11.5, y: 6.9, w: 1.4, h: 0.6, fontSize: 16, bold: true, color: CHAMP, align: 'right', valign: 'middle', fontFace: FONT })
 
   pptx.writeFile({ fileName: `EBS_MBR_${currentMonth}_${currentYear}.pptx` })
 }
@@ -853,6 +1034,9 @@ function Layout() {
         )}
       </div>
     )}
+
+    {/* Gold frame overlay — root-level so fixed positioning works reliably */}
+    {!isLanding && theme === 'dark' && <div className="gold-frame-overlay" aria-hidden="true" />}
 
     {/* Sidebar — always overlay, hidden by default on all screen sizes */}
     <aside className={`sidebar-luxe fixed z-40 h-full w-64 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -994,6 +1178,10 @@ function Dashboard() {
   const byOwner = {}
   projects.forEach(p => { const o = p.business_owner || 'Unassigned'; byOwner[o] = (byOwner[o] || 0) + 1 })
   const ownerData = Object.entries(byOwner).map(([name, value]) => ({ name: name.length > 25 ? name.substring(0, 25) + '…' : name, fullName: name, value })).sort((a, b) => b.value - a.value).slice(0, 10)
+  const ownerCount = Object.keys(byOwner).length
+  const pct = (n) => total ? Math.round((n / total) * 100) : 0
+  const atRiskList = projects.filter(p => p.status === 'At Risk' || p.status === 'Delayed')
+  const recentlyUpdated = [...projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 5)
 
   // Drill-down handlers
   const drillStatus = (status) => {
@@ -1014,11 +1202,11 @@ function Dashboard() {
   }
 
   const summaryCards = [
-    { kpi: 'total',     label: 'Total Projects',     value: total,     icon: FolderKanban,    color: 'bg-brand-600',    onClick: () => setDrillDown({ title: `All Projects (${total})`, projects }) },
-    { kpi: 'onTrack',   label: 'On Track',           value: onTrack,   icon: CheckCircle2,    color: 'bg-emerald-500',  onClick: () => drillStatus('On Track') },
-    { kpi: 'atRisk',    label: 'At Risk / Delayed',  value: atRisk,    icon: AlertTriangle,   color: 'bg-red-500',      onClick: () => { const f = projects.filter(p => p.status === 'At Risk' || p.status === 'Delayed'); setDrillDown({ title: `At Risk & Delayed (${f.length})`, projects: f }) } },
-    { kpi: 'completed', label: 'Completed',          value: completed, icon: Target,          color: 'bg-blue-500',     onClick: () => drillStatus('Completed') },
-    { kpi: 'onHold',    label: 'On Hold',            value: onHold,    icon: Pause,           color: 'bg-slate-400',    onClick: () => drillStatus('On Hold') },
+    { kpi: 'total',     label: 'Total Projects',     value: total,     icon: FolderKanban,    sub: `${ownerCount} owner${ownerCount === 1 ? '' : 's'}`, onClick: () => setDrillDown({ title: `All Projects (${total})`, projects }) },
+    { kpi: 'onTrack',   label: 'On Track',           value: onTrack,   icon: CheckCircle2,    sub: `${pct(onTrack)}% of total`,   onClick: () => drillStatus('On Track') },
+    { kpi: 'atRisk',    label: 'At Risk / Delayed',  value: atRisk,    icon: AlertTriangle,   sub: `${pct(atRisk)}% of total`,    onClick: () => setDrillDown({ title: `At Risk & Delayed (${atRiskList.length})`, projects: atRiskList }) },
+    { kpi: 'completed', label: 'Completed',          value: completed, icon: Target,          sub: `${pct(completed)}% of total`, onClick: () => drillStatus('Completed') },
+    { kpi: 'onHold',    label: 'On Hold',            value: onHold,    icon: Pause,           sub: `${pct(onHold)}% of total`,    onClick: () => drillStatus('On Hold') },
   ]
 
   // Projects starting this month (project_start_date in YYYY-MM format).
@@ -1077,18 +1265,29 @@ function Dashboard() {
     }
   }
 
+  // Monthly lifecycle reshaped into a line series for the Project Activity card.
+  const trendData = progressMonths.map(({ key, started, inProgress, completed }) => {
+    const [y, m] = key.split('-').map(Number)
+    return {
+      month: `${new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' })} '${String(y).slice(2)}`,
+      started: started.length,
+      inProgress: inProgress.length,
+      completed: completed.length,
+    }
+  })
+
   // Clickable pie chart handler
   const onPieClick = (data, type) => {
     if (type === 'status') drillStatus(data.name)
     else if (type === 'priority') drillPriority(data.name)
   }
 
-  return <div>
-    <PageLogo />
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+  return <div className="dash-wrap">
+    {/* Header — compact, no oversized logo so the grid sits higher on screen */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
       <div>
         <h1 className="page-title-gold text-2xl font-bold font-display text-surface-900">Projects Dashboard</h1>
-        <p className="text-sm text-surface-500 mt-1">Click any card, chart segment, or bar to drill down into projects</p>
+        <p className="text-sm text-surface-500 mt-0.5">Click any card, chart, or row to drill into projects</p>
       </div>
       {/* Project-level dashboard selector */}
       <div className="flex items-center gap-2">
@@ -1097,132 +1296,86 @@ function Dashboard() {
           <Presentation size={16} /> Generate MBR
         </button>
         <select value={selectedProjectId} onChange={e => { if (e.target.value) navigate(`/projects/${e.target.value}`) }}
-          className={`${selectCls} w-auto min-w-[200px] sm:min-w-[240px] text-sm`}>
+          className={`${selectCls} w-auto min-w-[180px] sm:min-w-[220px] text-sm`}>
           <option value="">Jump to project...</option>
           {projects.map(p => <option key={p.id} value={p.id}>#{p.project_number} — {p.project_name}</option>)}
         </select>
       </div>
     </div>
 
-    {/* Summary Cards — value on the left, big tinted icon on the right */}
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8 stagger">
-      {summaryCards.map(({ kpi, label, value, icon: Icon, onClick }) => (
-        <div key={label} data-kpi={kpi} onClick={onClick}
-          className="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm animate-fade-in hover:shadow-md hover:border-brand-200 transition-all cursor-pointer group">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-2xl font-bold font-display text-surface-900">{value}</p>
-              <p className="text-xs text-surface-500 mt-0.5">{label}</p>
+    {/* KPI summary row — gold icon-chip, gold value, sub-stat (reference "Today's Summary") */}
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-5 stagger">
+      {summaryCards.map(({ kpi, label, value, icon: Icon, sub, onClick }) => (
+        <div key={label} data-kpi={kpi} onClick={onClick} title={`${label}: ${value} — click to view`}
+          className="dash-kpi bg-white rounded-2xl p-4 border border-surface-200 shadow-sm animate-fade-in cursor-pointer group">
+          <div className="flex items-center gap-3">
+            <span className="dash-kpi-chip"><Icon size={20} strokeWidth={1.75} /></span>
+            <div className="min-w-0">
+              <p className="dash-kpi-value">{value}</p>
+              <p className="dash-kpi-label">{label}</p>
             </div>
-            <Icon size={44} className="kpi-card-icon shrink-0" strokeWidth={1.5} />
           </div>
-          <p className="text-[10px] text-brand-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view →</p>
+          {sub && (
+            <p className="dash-kpi-sub">
+              <span className="dash-kpi-sub-stat">{sub}</span>
+              <span className="dash-kpi-sub-cta">Click to view →</span>
+            </p>
+          )}
         </div>
       ))}
     </div>
 
-    {/* Charts — recharts ships in its own chunk; Suspense covers the
-        moment between dashboard render and chart code arrival. */}
-    <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"><div className="bg-white rounded-2xl p-6 border border-surface-200 h-[340px] animate-pulse" /><div className="bg-white rounded-2xl p-6 border border-surface-200 h-[340px] animate-pulse" /></div>}>
-      <DashboardCharts
-        byStatus={byStatus} byPriority={byPriority} ownerData={ownerData} byPhase={byPhase}
-        PIE_COLORS={PIE_COLORS} PRI_PIE_COLORS={PRI_PIE_COLORS}
-        onPieClick={onPieClick} drillOwner={drillOwner} drillPhase={drillPhase}
-      />
+    {/* Hero charts — Project Activity (line) + Status/Priority tabbed donut.
+        recharts ships in its own chunk; Suspense covers the gap until it arrives. */}
+    <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5"><div className="bg-white rounded-2xl border border-surface-200 h-[316px] lg:col-span-2 animate-pulse" /><div className="bg-white rounded-2xl border border-surface-200 h-[316px] animate-pulse" /></div>}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        <DashboardCharts section="trend" trendData={trendData} className="lg:col-span-2" />
+        <DashboardCharts section="statusPriority"
+          byStatus={byStatus} byPriority={byPriority}
+          PIE_COLORS={PIE_COLORS} PRI_PIE_COLORS={PRI_PIE_COLORS} onPieClick={onPieClick} />
+      </div>
     </Suspense>
 
-    {/* At Risk & Recently Updated */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl p-6 border border-surface-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-surface-700 mb-4">At Risk & Delayed Projects</h3>
-        {projects.filter(p => p.status === 'At Risk' || p.status === 'Delayed').length === 0 ? (
+    {/* Lists row — At Risk / Recently Updated / Top Owners (reference alerts + suppliers) */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+      <div className="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+        <h3 className="text-sm font-semibold text-surface-700 mb-3 flex items-center gap-2"><AlertTriangle size={15} className="text-red-400" /> At Risk &amp; Delayed</h3>
+        {atRiskList.length === 0 ? (
           <p className="text-sm text-surface-400 py-4">No at-risk or delayed projects</p>
         ) : (
-          <div className="space-y-3">
-            {projects.filter(p => p.status === 'At Risk' || p.status === 'Delayed').map(p => (
-              <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
-                className="flex items-center justify-between p-3 rounded-xl bg-surface-50 hover:bg-red-50/50 cursor-pointer transition-colors group">
-                <div><p className="text-sm font-medium text-surface-800">{p.project_name}</p><p className="text-xs text-surface-500">{p.business_owner}</p></div>
-                <div className="flex items-center gap-2"><StatusBadge status={p.status} /><ChevronRight size={14} className="text-surface-300 group-hover:text-red-400" /></div>
+          <div className="space-y-2 dash-list-scroll">
+            {atRiskList.map(p => (
+              <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)} title={`${p.project_name}${p.business_owner ? ' · ' + p.business_owner : ''} — open project`}
+                className="dash-row flex items-center justify-between p-2.5 rounded-xl bg-surface-50 hover:bg-red-50/50 cursor-pointer transition-all group">
+                <div className="min-w-0"><p className="text-sm font-medium text-surface-800 truncate">{p.project_name}</p><p className="text-xs text-surface-500 truncate">{p.business_owner}</p></div>
+                <div className="flex items-center gap-2 shrink-0"><StatusBadge status={p.status} /><ChevronRight size={14} className="text-surface-300 group-hover:text-red-400" /></div>
               </div>
             ))}
           </div>
         )}
       </div>
-      <div className="bg-white rounded-2xl p-6 border border-surface-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-surface-700 mb-4">Recently Updated</h3>
-        <div className="space-y-3">
-          {[...projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 5).map(p => (
-            <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
-              className="flex items-center justify-between p-3 rounded-xl bg-surface-50 hover:bg-brand-50/50 cursor-pointer transition-colors group">
-              <div><p className="text-sm font-medium text-surface-800">{p.project_name}</p><p className="text-xs text-surface-500">{new Date(p.updated_at).toLocaleDateString()}</p></div>
-              <div className="flex items-center gap-2"><ProgressBar value={p.percent_complete || '0'} className="w-28" /><ChevronRight size={14} className="text-surface-300 group-hover:text-brand-400" /></div>
+
+      <div className="bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+        <h3 className="text-sm font-semibold text-surface-700 mb-3 flex items-center gap-2"><Clock size={15} className="text-brand-400" /> Recently Updated</h3>
+        <div className="space-y-2 dash-list-scroll">
+          {recentlyUpdated.map(p => (
+            <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)} title={`${p.project_name} — updated ${new Date(p.updated_at).toLocaleDateString()} · ${p.percent_complete || 0}% complete`}
+              className="dash-row flex items-center justify-between p-2.5 rounded-xl bg-surface-50 hover:bg-brand-50/50 cursor-pointer transition-all group">
+              <div className="min-w-0"><p className="text-sm font-medium text-surface-800 truncate">{p.project_name}</p><p className="text-xs text-surface-500">{new Date(p.updated_at).toLocaleDateString()}</p></div>
+              <div className="flex items-center gap-2 shrink-0"><ProgressBar value={p.percent_complete || '0'} className="w-24" /><ChevronRight size={14} className="text-surface-300 group-hover:text-brand-400" /></div>
             </div>
           ))}
         </div>
       </div>
+
+      <Suspense fallback={<div className="bg-white rounded-2xl border border-surface-200 h-[280px] animate-pulse" />}>
+        <DashboardCharts section="ownerPhase"
+          ownerData={ownerData} byPhase={byPhase} drillOwner={drillOwner} drillPhase={drillPhase} />
+      </Suspense>
     </div>
 
-    {/* Progress so far — every project's lifecycle, month by month */}
-    {progressMonths.length > 0 && (
-      <section className="dash-progress-section">
-        <div className="dash-month-eyebrow">Progress So Far</div>
-        <h2 className="dash-month-title">{inMotionThisMonth} <span className="yr">in motion</span></h2>
-        <p className="dash-month-sub">The lifecycle of every project, month by month. Click a bar to drill in.</p>
-        <div className="dash-progress-legend">
-          <span className="dash-progress-legend-item"><span className="dash-progress-dot started" /> Started</span>
-          <span className="dash-progress-legend-item"><span className="dash-progress-dot in-progress" /> In Progress</span>
-          <span className="dash-progress-legend-item"><span className="dash-progress-dot completed" /> Completed</span>
-        </div>
-        <div className="dash-progress-strip">
-          {progressMonths.map(({ key, started, inProgress, completed }) => {
-            const [y, m] = key.split('-').map(Number)
-            const monthLabel = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' })
-            const yrSuffix = `'${String(y).slice(2)}`
-            const h = (n) => maxLifecycleBar > 0 ? (n / maxLifecycleBar) * 100 : 0
-            const drill = (state, list) => {
-              if (!list.length) return
-              setDrillDown({
-                title: `${state} in ${monthLabel} ${yrSuffix} (${list.length})`,
-                projects: list,
-              })
-            }
-            return (
-              <div key={key} className="dash-progress-col">
-                <div className="dash-progress-bars">
-                  <button type="button" disabled={started.length === 0}
-                    className="dash-progress-bar-btn"
-                    onClick={() => drill('Started', started)}
-                    title={`${started.length} started`}>
-                    <div className="dash-progress-bar started" style={{ height: `${h(started.length)}%` }} />
-                  </button>
-                  <button type="button" disabled={inProgress.length === 0}
-                    className="dash-progress-bar-btn"
-                    onClick={() => drill('In Progress', inProgress)}
-                    title={`${inProgress.length} in progress`}>
-                    <div className="dash-progress-bar in-progress" style={{ height: `${h(inProgress.length)}%` }} />
-                  </button>
-                  <button type="button" disabled={completed.length === 0}
-                    className="dash-progress-bar-btn"
-                    onClick={() => drill('Completed', completed)}
-                    title={`${completed.length} completed`}>
-                    <div className="dash-progress-bar completed" style={{ height: `${h(completed.length)}%` }} />
-                  </button>
-                </div>
-                <div className="dash-progress-counts">
-                  <span className={started.length === 0 ? 'is-zero' : ''}>{started.length}</span>
-                  <span className={inProgress.length === 0 ? 'is-zero' : ''}>{inProgress.length}</span>
-                  <span className={completed.length === 0 ? 'is-zero' : ''}>{completed.length}</span>
-                </div>
-                <div className="dash-progress-month">{monthLabel}<span className="yr">{yrSuffix}</span></div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-    )}
-
-    {/* Editorial closer — projects whose start_date is the current month */}
+    {/* Editorial closer — projects whose start_date is the current month
+        (kept below the fold, original formation — visible on scroll). */}
     <section className="dash-month-section">
       <div className="dash-month-eyebrow">Starting This Month</div>
       <h2 className="dash-month-title">{monthName}<span className="yr">'{String(now.getFullYear()).slice(2)}</span></h2>
@@ -1253,6 +1406,19 @@ function Dashboard() {
   </div>
 }
 
+// Build a windowed page list with ellipses, e.g. [1, '…', 4, 5, 6, '…', 12].
+function pagerRange(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const out = [1]
+  const left = Math.max(2, current - 1)
+  const right = Math.min(total - 1, current + 1)
+  if (left > 2) out.push('…')
+  for (let i = left; i <= right; i++) out.push(i)
+  if (right < total - 1) out.push('…')
+  out.push(total)
+  return out
+}
+
 // ─── PROJECT TRACKER ────────────────────────────────────────
 function ProjectTracker() {
   const { isAdmin } = useAuth()
@@ -1266,6 +1432,8 @@ function ProjectTracker() {
   const [filterPriorities, setFilterPriorities] = useState([])
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 7
   const fileInputRef = useRef(null)
 
   const filtered = useMemo(() => projects.filter(p => {
@@ -1274,6 +1442,12 @@ function ProjectTracker() {
     if (filterPriorities.length > 0 && !filterPriorities.includes(p.priority)) return false
     return true
   }), [projects, searchTerm, filterStatuses, filterPriorities])
+
+  // Pagination — reset to page 1 whenever the filtered set changes.
+  useEffect(() => { setPage(1) }, [searchTerm, filterStatuses, filterPriorities, projects.length])
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const handleSave = async (data) => {
     try {
@@ -1328,12 +1502,11 @@ function ProjectTracker() {
   if (projectsLoading) return <Spinner />
   if (projectsError) return <EmptyState icon={AlertCircle} title="Failed to load projects" description={projectsError} action={<button onClick={refreshProjects} className="text-brand-600 text-sm font-medium">Try again</button>} />
 
-  return <div>
-    <PageLogo />
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  return <div className="dash-wrap">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
       <div>
         <h1 className="page-title-gold text-2xl font-bold font-display text-surface-900">Project Tracker</h1>
-        <p className="text-sm text-surface-500 mt-1">{projects.length} projects · {filtered.length} shown · Click any row to view details</p>
+        <p className="text-sm text-surface-500 mt-0.5">{projects.length} projects · {filtered.length} shown · Click any row to view details</p>
       </div>
       {isAdmin && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -1351,7 +1524,7 @@ function ProjectTracker() {
             <Upload size={14} /> {uploading ? 'Importing...' : 'Bulk Upload'}
           </button>
           <button onClick={() => { setEditProject(null); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm">
+            className="flex items-center gap-2 px-4 py-2.5 bg-surface-900 text-white rounded-xl text-sm font-medium hover:bg-surface-800 transition-colors shadow-sm">
             <Plus size={16} /> New Project
           </button>
         </div>
@@ -1365,7 +1538,7 @@ function ProjectTracker() {
       </div>
     )}
 
-    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+    <div className="flex flex-col sm:flex-row gap-3 mb-5">
       <div className="relative flex-1">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400" />
         <input type="text" placeholder="Search projects or owners..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={`${inputCls} pl-9`} />
@@ -1378,15 +1551,15 @@ function ProjectTracker() {
       {/* Desktop table */}
       <div className="overflow-x-auto hidden md:block">
         <table className="w-full">
-          <thead><tr className="bg-surface-50 border-b border-surface-200">
+          <thead><tr className="dash-thead border-b border-surface-200">
             {['#', 'Project Name', 'Dept / Module', 'Owner', 'Priority', 'Status', 'Phase', 'Progress', 'Impact', ''].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
           <tbody className="divide-y divide-surface-100">
-            {filtered.map(p => (
-              <tr key={p.id} className="project-row group" onClick={() => navigate(`/projects/${p.id}`)}>
-                <td className="px-4 py-3 text-sm font-mono text-surface-400">{p.project_number}</td>
+            {paged.map(p => (
+              <tr key={p.id} className="project-row group" onClick={() => navigate(`/projects/${p.id}`)} title={`${p.project_name} — ${p.business_owner || 'Unassigned'} · ${p.phase || '—'} · ${p.percent_complete || 0}%`}>
+                <td className="px-4 py-3 text-sm font-mono dash-num">{p.project_number}</td>
                 <td className="px-4 py-3">
                   <p className="text-sm font-medium text-surface-800 max-w-xs truncate group-hover:text-brand-600 transition-colors">{p.project_name}</p>
                 </td>
@@ -1395,8 +1568,8 @@ function ProjectTracker() {
                 <td className="px-4 py-3"><PriorityBadge priority={p.priority} /></td>
                 <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                 <td className="px-4 py-3 text-sm text-surface-600">{p.phase}</td>
-                <td className="px-4 py-3 w-36"><ProgressBar value={p.percent_complete || '0'} /></td>
-                <td className="px-4 py-3 text-sm text-surface-600">{p.business_impact}</td>
+                <td className="px-4 py-3 w-36"><ProgressBar value={p.percent_complete || '0'} gold /></td>
+                <td className="px-4 py-3 text-sm"><span className="dash-impact">{p.business_impact}</span></td>
                 <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-1">
                     {isAdmin && <>
@@ -1414,7 +1587,7 @@ function ProjectTracker() {
 
       {/* Mobile card view */}
       <div className="md:hidden divide-y divide-surface-100">
-        {filtered.map(p => (
+        {paged.map(p => (
           <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
             className="p-4 active:bg-surface-50 transition-colors cursor-pointer">
             <div className="flex items-start justify-between gap-3">
@@ -1435,12 +1608,33 @@ function ProjectTracker() {
                 <ChevronRight size={16} className="text-surface-300 ml-1" />
               </div>
             </div>
-            <ProgressBar value={p.percent_complete || '0'} className="mt-2.5" />
+            <ProgressBar value={p.percent_complete || '0'} gold className="mt-2.5" />
           </div>
         ))}
       </div>
       {filtered.length === 0 && <EmptyState icon={FolderKanban} title="No projects found" description="Try adjusting your search or filter criteria." />}
     </div>
+
+    {/* Pagination — 7 rows per page, luxe pager (matches the reference). */}
+    {filtered.length > 0 && (
+      <div className="dash-pager">
+        <span className="dash-pager-info">
+          Showing {(safePage - 1) * pageSize + 1} to {Math.min(safePage * pageSize, filtered.length)} of {filtered.length} projects
+        </span>
+        {totalPages > 1 && (
+          <div className="dash-pager-controls">
+            <button className="dash-pager-btn" disabled={safePage === 1} onClick={() => setPage(1)} aria-label="First page"><ChevronsLeft size={16} /></button>
+            <button className="dash-pager-btn" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page"><ChevronLeft size={16} /></button>
+            {pagerRange(safePage, totalPages).map((p, i) => p === '…'
+              ? <span key={`e${i}`} className="dash-pager-ellipsis">…</span>
+              : <button key={p} onClick={() => setPage(p)} className={`dash-pager-btn ${p === safePage ? 'is-active' : ''}`}>{p}</button>
+            )}
+            <button className="dash-pager-btn" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)} aria-label="Next page"><ChevronRight size={16} /></button>
+            <button className="dash-pager-btn" disabled={safePage === totalPages} onClick={() => setPage(totalPages)} aria-label="Last page"><ChevronsRight size={16} /></button>
+          </div>
+        )}
+      </div>
+    )}
 
     <ProjectFormModal open={showForm} project={editProject} onClose={() => { setShowForm(false); setEditProject(null) }} onSave={handleSave} />
     <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
@@ -1492,6 +1686,52 @@ function ProjectFormModal({ open, project, onClose, onSave }) {
 }
 
 // ─── PROJECT DETAIL (with project-level dashboard) ──────────
+// Segmented "overall progress" bar (reference uses ~8 champagne segments).
+function SegmentedBar({ pct, segments = 8 }) {
+  const filled = Math.round((Math.max(0, Math.min(100, pct)) / 100) * segments)
+  return (
+    <div className="pd-segbar">
+      {Array.from({ length: segments }).map((_, i) => (
+        <span key={i} className={`pd-seg ${i < filled ? 'is-on' : ''}`} />
+      ))}
+    </div>
+  )
+}
+
+// Gold hexagon icon badge used on the project-dashboard KPI cards.
+function HexIcon({ icon: Icon }) {
+  return (
+    <span className="pd-hex">
+      <svg viewBox="0 0 100 100" className="pd-hex-svg" aria-hidden="true">
+        <polygon points="50,4 91,27 91,73 50,96 9,73 9,27" />
+      </svg>
+      <Icon size={20} strokeWidth={1.75} className="pd-hex-icon" />
+    </span>
+  )
+}
+
+// Phase stepper — walks the real PHASES, marks done / current ("YOU ARE HERE") / upcoming.
+function PhaseStepper({ phases, current }) {
+  const curIdx = phases.indexOf(current)
+  return (
+    <div className="pd-stepper">
+      {phases.map((ph, i) => {
+        const state = curIdx === -1 ? 'todo' : i < curIdx ? 'done' : i === curIdx ? 'current' : 'todo'
+        return (
+          <React.Fragment key={ph}>
+            {i > 0 && <div className={`pd-step-line ${i <= curIdx ? 'is-done' : ''}`} />}
+            <div className={`pd-step ${state}`}>
+              <div className="pd-step-dot">{state === 'done' ? '✓' : i + 1}</div>
+              <div className="pd-step-label">{ph}</div>
+              <div className="pd-step-here">{state === 'current' ? 'YOU ARE HERE' : ' '}</div>
+            </div>
+          </React.Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
 function ProjectDetail() {
   const { id } = useParams()
   const { isAdmin } = useAuth()
@@ -1684,6 +1924,7 @@ function ProjectDetail() {
   if (!project) return <EmptyState icon={FolderKanban} title="Project not found" description="This project may have been deleted." action={<Link to="/projects" className="text-brand-600 text-sm font-medium">← Back to tracker</Link>} />
 
   // Analytics
+  const pctNum = project.percent_complete === 'Ongoing' ? 50 : parseInt(project.percent_complete) || 0
   const completedMs = milestones.filter(m => m.development_status === 'Completed').length
   const msProgress = milestones.length > 0 ? Math.round((completedMs / milestones.length) * 100) : 0
   const devStatusData = DEV_STATUSES.map(s => ({ name: s, value: milestones.filter(m => m.development_status === s).length })).filter(d => d.value > 0)
@@ -1701,22 +1942,27 @@ function ProjectDetail() {
 
     {/* Project Header Card — like the Ecom Integration sheet */}
     <div className="bg-white rounded-2xl border border-surface-200 shadow-sm p-6 mb-6">
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <span className="text-xs font-mono text-surface-400 bg-surface-100 px-2 py-0.5 rounded">#{project.project_number}</span>
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="pd-eyebrow">Project #{project.project_number}</span>
+            <ChevronRight size={13} className="text-surface-400 shrink-0" />
             <PriorityBadge priority={project.priority} />
             <StatusBadge status={project.status} />
-            <span className="text-xs bg-surface-100 text-surface-600 px-2 py-0.5 rounded font-medium">{project.phase}</span>
+            <span className="pd-phase-pill">{project.phase} Phase</span>
           </div>
-          <h1 className="text-xl font-bold font-display text-surface-900 mb-2">{project.project_name}</h1>
-          {project.objective && <p className="text-sm text-surface-600 leading-relaxed max-w-3xl">{project.objective}</p>}
+          <h1 className="pd-title">{project.project_name}</h1>
+          {project.dept_module && <p className="pd-subtitle">{project.dept_module}</p>}
+          {project.objective && <p className="text-sm text-surface-600 leading-relaxed max-w-3xl mt-3">{project.objective}</p>}
         </div>
-        <div className="flex flex-col items-end gap-2 min-w-[220px]">
-          <ProgressBar value={project.percent_complete || '0'} className="w-full" height="h-3" />
+        <div className="pd-progress-card">
+          <p className="pd-progress-eyebrow">Overall Progress</p>
+          <p className="pd-progress-pct">{project.percent_complete === 'Ongoing' ? '∞' : `${pctNum}%`}</p>
+          <SegmentedBar pct={pctNum} />
+          <p className="pd-progress-sub">{project.percent_complete === 'Ongoing' ? 'Ongoing' : `${pctNum}% Complete`}</p>
           {isAdmin && (
             <button onClick={() => setShowEditProject(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-medium hover:bg-brand-700 transition-colors mt-1">
+              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-surface-900 text-white rounded-lg text-xs font-medium hover:bg-surface-800 transition-colors">
               <Pencil size={12} /> Edit All Details
             </button>
           )}
@@ -1755,6 +2001,11 @@ function ProjectDetail() {
       ))}
     </div>
 
+    {/* Phase stepper — real PHASES, current phase marked "YOU ARE HERE" */}
+    <div className="bg-white rounded-2xl border border-surface-200 shadow-sm p-6 mb-6 overflow-x-auto">
+      <PhaseStepper phases={PHASES} current={project.phase} />
+    </div>
+
     {/* Tabs — Dashboard / Milestones / Risks */}
     <div className="flex gap-1 mb-6 bg-surface-100 rounded-xl p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:w-fit">
       {[
@@ -1774,66 +2025,85 @@ function ProjectDetail() {
     {tab === 'dashboard' && (
       <div>
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-surface-200">
-            <p className="text-xs text-surface-400 mb-1">Total Milestones</p>
-            <p className="text-2xl font-bold font-display text-surface-900">{milestones.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div className="pd-kpi bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+            <HexIcon icon={ListChecks} />
+            <div className="min-w-0">
+              <p className="pd-kpi-eyebrow">Total Milestones</p>
+              <p className="pd-kpi-num">{milestones.length}</p>
+              <p className="pd-kpi-sub2">For this project</p>
+            </div>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-surface-200">
-            <p className="text-xs text-surface-400 mb-1">Completed</p>
-            <p className="text-2xl font-bold font-display text-emerald-600">{completedMs}</p>
-            <ProgressBar value={String(msProgress)} className="mt-2" />
+          <div className="pd-kpi bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+            <HexIcon icon={CheckCircle2} />
+            <div className="min-w-0 flex-1">
+              <p className="pd-kpi-eyebrow">Completed</p>
+              <p className="pd-kpi-num">{completedMs}</p>
+              <p className="pd-kpi-sub2">{msProgress}% of total milestones</p>
+              <div className="flex items-center gap-3 mt-3">
+                <SegmentedBar pct={msProgress} segments={22} />
+                <span className="text-xs font-bold pd-kpi-pct">{msProgress}%</span>
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-surface-200">
-            <p className="text-xs text-surface-400 mb-1">Open Risks</p>
-            <p className="text-2xl font-bold font-display text-red-600">{risks.length}</p>
-            {risks.filter(r => r.impact === 'High').length > 0 && <p className="text-xs text-red-500 mt-1">{risks.filter(r => r.impact === 'High').length} high impact</p>}
+          <div className="pd-kpi bg-white rounded-2xl p-5 border border-surface-200 shadow-sm">
+            <HexIcon icon={FileWarning} />
+            <div className="min-w-0">
+              <p className="pd-kpi-eyebrow">Open Risks</p>
+              <p className="pd-kpi-num">{risks.length}</p>
+              <p className="pd-kpi-sub2">{risks.length === 0 ? 'No open risks' : `${risks.filter(r => r.impact === 'High').length} high impact`}</p>
+            </div>
           </div>
         </div>
 
-        {milestones.length > 0 ? (
-          <div className="mb-6">
-            {/* Status Pie — single chart now that UAT is hidden site-wide */}
-            <div className="bg-white rounded-2xl p-6 border border-surface-200 max-w-2xl mx-auto">
-              <h3 className="text-sm font-semibold text-surface-700 mb-1">Status</h3>
-              <p className="text-xs text-surface-400 mb-3">Click a segment to see milestones</p>
-              <Suspense fallback={<ChartFallback height={220} />}>
-                <ProjectDetailChartsLazy kind="dev" data={devStatusData} colors={DEV_STATUS_COLORS}
-                  onDrill={(name) => { const filtered = milestones.filter(m => m.development_status === name); setDashDrill({ title: `Status: ${name} (${filtered.length})`, items: filtered, type: 'milestones' }) }} />
-              </Suspense>
-            </div>
-          </div>
-        ) : (
+        {milestones.length === 0 ? (
           <div className="bg-white rounded-2xl border border-surface-200 p-8 text-center mb-6">
             <Info className="text-surface-300 mx-auto mb-3" size={32} />
             <p className="text-sm text-surface-500">Add milestones to see project-level analytics here</p>
             {isAdmin && <button onClick={() => { setTab('milestones'); setTimeout(() => setShowMilestoneForm(true), 100) }}
               className="text-brand-600 text-sm font-medium mt-2 hover:underline">+ Add first milestone</button>}
           </div>
-        )}
-
-        {/* Risk summary */}
-        {risks.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Status Overview — donut */}
             <div className="bg-white rounded-2xl p-6 border border-surface-200">
-              <h3 className="text-sm font-semibold text-surface-700 mb-1">Risks by Impact</h3>
-              <p className="text-xs text-surface-400 mb-3">Click a bar to see risks</p>
-              <Suspense fallback={<ChartFallback height={180} />}>
-                <ProjectDetailChartsLazy kind="risk" data={riskByImpact} fill="#ef4444"
-                  onDrill={(name) => { const filtered = risks.filter(r => r.impact === name); setDashDrill({ title: `${name} Impact Risks (${filtered.length})`, items: filtered, type: 'risks' }) }} />
+              <h3 className="text-sm font-semibold text-surface-700 mb-1">Status Overview</h3>
+              <p className="text-xs text-surface-400 mb-3">Click a segment to see milestones</p>
+              <Suspense fallback={<ChartFallback height={220} />}>
+                <ProjectDetailChartsLazy kind="dev" data={devStatusData} colors={DEV_STATUS_COLORS}
+                  onDrill={(name) => { const filtered = milestones.filter(m => m.development_status === name); setDashDrill({ title: `Status: ${name} (${filtered.length})`, items: filtered, type: 'milestones' }) }} />
               </Suspense>
             </div>
-            <div className="bg-white rounded-2xl p-6 border border-surface-200">
-              <h3 className="text-sm font-semibold text-surface-700 mb-1">Risks by Likelihood</h3>
-              <p className="text-xs text-surface-400 mb-3">Click a bar to see risks</p>
-              <Suspense fallback={<ChartFallback height={180} />}>
-                <ProjectDetailChartsLazy kind="risk" data={riskByLikelihood} fill="#f59e0b"
-                  onDrill={(name) => { const filtered = risks.filter(r => r.likelihood === name); setDashDrill({ title: `${name} Likelihood Risks (${filtered.length})`, items: filtered, type: 'risks' }) }} />
-              </Suspense>
+            {/* Milestone Status — textual breakdown */}
+            <div className="bg-white rounded-2xl p-6 border border-surface-200 flex flex-col">
+              <h3 className="text-sm font-semibold text-surface-700 mb-1">Milestone Status</h3>
+              <p className="text-xs text-surface-400 mb-3">Click a row to see milestones</p>
+              <div className="flex-1 flex flex-col justify-center divide-y divide-surface-100">
+                {DEV_STATUSES.map(s => {
+                  const list = milestones.filter(m => m.development_status === s)
+                  if (list.length === 0) return null
+                  const p = Math.round((list.length / milestones.length) * 100)
+                  const hex = DEV_STATUS_COLORS[s]?.hex || '#94a3b8'
+                  return (
+                    <button key={s} onClick={() => setDashDrill({ title: `Status: ${s} (${list.length})`, items: list, type: 'milestones' })}
+                      className="flex items-center gap-3 w-full py-3 text-left">
+                      <span className="pd-ms-dot" style={{ color: hex }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: hex }}>{s}</p>
+                        <p className="text-xs text-surface-400">{list.length} {list.length === 1 ? 'milestone' : 'milestones'}</p>
+                      </div>
+                      <span className="text-lg font-bold font-display" style={{ color: hex }}>{p}%</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={() => setTab('milestones')} className="pd-viewall mt-3">View all milestones →</button>
             </div>
           </div>
         )}
 
+        {/* Row 3 — Hours logged by employee + Recent activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employee hours on this project — portrait cards grid */}
         {(() => {
           // Aggregate: per member → { hours, logs[], byDay{date:hours}, avatar }
@@ -1860,7 +2130,7 @@ function ProjectDetail() {
 
           if (contributors.length === 0) {
             return (
-              <div className="bg-white rounded-2xl border border-surface-200 p-6 mt-6">
+              <div className="bg-white rounded-2xl border border-surface-200 p-6 h-full">
                 <h3 className="text-sm font-semibold text-surface-700 mb-1">Hours Logged by Employee</h3>
                 <p className="text-xs text-surface-400 mb-3">From EBS Tracker — no team member has logged hours against this project yet.</p>
               </div>
@@ -1901,7 +2171,7 @@ function ProjectDetail() {
           }
 
           return (
-            <div className="bg-white rounded-2xl border border-surface-200 p-6 mt-6">
+            <div className="bg-white rounded-2xl border border-surface-200 p-6 h-full">
               <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
                 <h3 className="text-sm font-semibold text-surface-700">Hours Logged by Employee</h3>
                 <div className="flex gap-3 text-xs text-surface-500">
@@ -1910,7 +2180,7 @@ function ProjectDetail() {
                 </div>
               </div>
               <p className="text-xs text-surface-400 mb-5">Click a card to see that employee's individual log entries.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {contributors.map(c => {
                   const initials = c.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                   const pct = totalHours > 0 ? Math.round((c.hours / totalHours) * 100) : 0
@@ -1946,24 +2216,36 @@ function ProjectDetail() {
           )
         })()}
 
-        {/* Milestone details list on dashboard */}
-        {milestones.length > 0 && (
-          <div className="bg-white rounded-2xl border border-surface-200 p-6 mt-6">
-            <h3 className="text-sm font-semibold text-surface-700 mb-4">Milestone Progress Overview</h3>
-            <div className="space-y-3">
-              {milestones.map(m => (
-                <div key={m.id} className="flex items-center gap-4 p-3 rounded-xl bg-surface-50">
-                  <span className="text-xs font-mono text-surface-400 w-6">#{m.milestone_number}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-surface-800 truncate">{m.deliverable}</p>
-                    {m.owner && <p className="text-xs text-surface-400">Owner: {m.owner}</p>}
-                  </div>
-                  <DevStatusBadge status={m.development_status} />
+        {/* Recent Activity — derived from logged task entries (real task_logs) */}
+        {(() => {
+          const acts = [...hourLogs]
+            .filter(l => l.log_date)
+            .sort((a, b) => new Date(b.log_date) - new Date(a.log_date))
+            .slice(0, 6)
+          return (
+            <div className="bg-white rounded-2xl border border-surface-200 p-6 h-full">
+              <h3 className="text-sm font-semibold text-surface-700 mb-1">Recent Activity</h3>
+              <p className="text-xs text-surface-400 mb-4">Latest logged entries for this project.</p>
+              {acts.length === 0 ? (
+                <p className="text-sm text-surface-400 py-4">No logged activity yet.</p>
+              ) : (
+                <div className="pd-activity">
+                  {acts.map((l, i) => (
+                    <div key={i} className="pd-activity-row">
+                      <span className="pd-activity-dot" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-surface-800 truncate">{l.task_description || l.task_project || 'Activity'}</p>
+                        <p className="text-xs text-surface-400 truncate">{l.profiles?.full_name || l.team_member || '—'}</p>
+                      </div>
+                      <span className="text-xs text-surface-400 whitespace-nowrap">{new Date(l.log_date).toLocaleDateString()}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          )
+        })()}
+        </div>
       </div>
     )}
 
@@ -2344,17 +2626,16 @@ function GanttChartPage() {
   const years = {}
   months.forEach(m => { const y = m.getFullYear(); if (!years[y]) years[y] = []; years[y].push(m) })
 
-  return <div>
-    <PageLogo />
-    <div className="mb-6">
+  return <div className="dash-wrap">
+    <div className="mb-5">
       <h1 className="page-title-gold text-2xl font-bold font-display text-surface-900">Gantt Chart</h1>
-      <p className="text-sm text-surface-500 mt-1">Project timeline — auto-updates from project data · Click any row to view details</p>
+      <p className="text-sm text-surface-500 mt-0.5">Project timeline — auto-updates from project data · Click any row to view details</p>
     </div>
     <div className="flex flex-wrap gap-4 mb-4">
       {Object.entries(STATUS_COLORS).map(([name, c]) => (
         <div key={name} className="flex items-center gap-1.5 text-xs text-surface-600"><div className="w-3 h-3 rounded-sm" style={{ backgroundColor: c.hex }} /> {name}</div>
       ))}
-      {todayPos !== null && <div className="flex items-center gap-1.5 text-xs text-surface-600"><div className="w-3 h-0.5 bg-red-500" /> Today</div>}
+      {todayPos !== null && <div className="flex items-center gap-1.5 text-xs text-surface-600"><div className="w-3 h-0.5 bg-[#caa15a]" /> Today</div>}
       <div className="flex items-center gap-1.5 text-xs text-surface-600"><div className="w-3 h-1 gantt-est-bar" /> Planned (est.)</div>
     </div>
     <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden">
@@ -2395,14 +2676,14 @@ function GanttChartPage() {
           const color = STATUS_COLORS[p.status]?.hex || '#94a3b8'
           return <div key={p.id} className="flex border-b border-surface-50 hover:bg-surface-50/50 cursor-pointer transition-colors group" style={{ height: 36 }} onClick={() => navigate(`/projects/${p.id}`)}>
             <div className="w-[320px] min-w-[320px] border-r border-surface-100 flex items-center">
-              <div className="w-10 px-2 text-[10px] font-mono text-surface-400">{p.project_number}</div>
+              <div className="w-10 px-2 text-[10px] font-mono dash-num">{p.project_number}</div>
               <div className="flex-1 px-2 text-xs font-medium text-surface-700 truncate group-hover:text-brand-600 transition-colors">{p.project_name}</div>
               <div className="w-20 px-1 flex items-center justify-center"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} /></div>
               <div className="w-12 px-2 text-[10px] text-surface-500 text-right font-mono">{p.percent_complete === 'Ongoing' ? '∞' : `${pct}%`}</div>
             </div>
             <div className="flex-1 relative">
               {months.map((_, i) => (<div key={i} className="absolute top-0 bottom-0 border-r border-surface-50" style={{ left: `${(i / months.length) * 100}%` }} />))}
-              {todayPos !== null && <div className="absolute top-0 bottom-0 w-px bg-red-400 z-10" style={{ left: `${todayPos}%` }} />}
+              {todayPos !== null && <div className="absolute top-0 bottom-0 w-px bg-[#caa15a] z-10" style={{ left: `${todayPos}%` }} />}
               {/* Estimated range — dashed champagne strip above the actual
                   bar. Only renders when BOTH est dates are set. */}
               {(() => {

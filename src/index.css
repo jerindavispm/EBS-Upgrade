@@ -1051,14 +1051,50 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
    are reshaped for readability on dark surfaces.
    ═════════════════════════════════════════════════════════════════ */
 
+/* Dark mode — Plum: a dark aubergine base with a faint mauve grid + champagne
+   top glow, and warm off-white text (softer than pure white on the eyes). */
 .app-dark {
-  color: #fff;
-  background-color: #000;
+  color: #f3efe7;
+  background-color: #1A1422;
   background-image:
-    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 64px 64px;
+    linear-gradient(rgba(205,165,215,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(205,165,215,0.045) 1px, transparent 1px),
+    radial-gradient(125% 80% at 50% 0%, rgba(231,205,148,0.06), transparent 62%);
+  background-size: 64px 64px, 64px 64px, 100% 100%;
   min-height: 100%;
+}
+
+/* ── Gold elements (dark mode) — Gold titles + Top accent + Corner glow.
+   The Gold frame is the .gold-frame-overlay element rendered at app root. ── */
+
+/* Gold titles — card/section headings rendered in champagne */
+.app-dark .bg-white h3,
+.app-dark .bg-white h2 { color: #e6cf94 !important; }
+
+/* Top accent — thin champagne strip along the top edge of each card */
+.app-dark .bg-white.rounded-2xl,
+.app-dark .bg-white.rounded-xl {
+  box-shadow: inset 0 2px 0 rgba(212,184,123,0.5), 0 24px 48px -24px rgba(0,0,0,0.9) !important;
+}
+
+/* Corner glow — soft gold light in each card's top-right (skip accent/kpi cards) */
+.app-dark .bg-white.rounded-2xl:not([data-kpi]):not([data-accent]) { position: relative; }
+.app-dark .bg-white.rounded-2xl:not([data-kpi]):not([data-accent])::after {
+  content: ''; position: absolute; top: 0; right: 0; width: 90px; height: 90px;
+  background: radial-gradient(circle at 100% 0%, rgba(212,184,123,0.18), transparent 70%);
+  border-top-right-radius: 1rem; pointer-events: none;
+}
+
+/* Gold frame — champagne border around the whole app window. The huge solid
+   outer box-shadow fills everything *outside* the rounded frame with the page
+   colour, so no content bleeds past the gold edge. Sits below the side menu. */
+.gold-frame-overlay {
+  position: fixed; inset: 10px; z-index: 20; pointer-events: none;
+  border-radius: 14px;
+  border: 1.5px solid rgba(212,184,123,0.6);
+  box-shadow:
+    0 0 0 100vmax #1A1422,
+    inset 0 0 40px -8px rgba(212,184,123,0.28);
 }
 
 /* ═════════════════════════════════════════════════════════════════
@@ -1627,30 +1663,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   margin-bottom: 18px !important;
 }
 
-/* ─── KPI card typography (dark theme) ──────────────────────────
-   Number scales up + leans display-y. Label gets tracked caps. */
-.app-dark [data-kpi] > p:first-of-type { /* the value */
-  font-size: 32px !important;
-  line-height: 1 !important;
-  letter-spacing: -0.025em !important;
-  color: #fff !important;
-  text-shadow: 0 2px 18px rgba(var(--kpi-color), 0.45);
-  margin-bottom: 6px;
-}
-.app-dark [data-kpi] > p:nth-of-type(2) { /* the label */
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: rgba(var(--kpi-color), 1) !important;
-  opacity: 0.95;
-}
-.app-dark [data-kpi] > p:nth-of-type(3) { /* "Click to view →" */
-  font-family: 'Instrument Serif', Georgia, serif !important;
-  font-style: italic;
-  font-size: 12px !important;
-  letter-spacing: 0.01em;
-}
+/* NOTE: The old positional KPI typography rules
+   (.app-dark [data-kpi] > p:first-of-type / nth-of-type(2|3)) were removed.
+   They targeted the previous card's three <p> children by order; the
+   redesigned card uses .dash-kpi-value / .dash-kpi-label / .dash-kpi-sub
+   classes instead, and the stale p:first-of-type rule was hijacking the
+   sub-line to 32px in dark mode. */
 
 /* Recharts axis tick labels and tooltip — Recharts paints them in
    #666 by default which is invisible on the dark canvas. */
@@ -2099,9 +2117,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   box-shadow: 0 0 0 3px rgba(230,201,120,0.15) !important;
   outline: none;
 }
-
-/* Hover hint "Click to view →" on KPI cards goes gold instead of brand-blue */
-.app-dark [data-kpi] > p:nth-of-type(3) { color: rgba(230,201,120,0.85) !important; }
 
 /* Sidebar active link gets a thin gold left rule */
 .app-dark .bg-brand-50,
@@ -2892,3 +2907,320 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   color: #5f4419;
   border-color: rgba(154, 115, 53, 0.35);
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   REDESIGNED PROJECTS DASHBOARD — dense, one-screen luxe ops board.
+   Mirrors the gold-on-black reference: champagne KPI chips, donut with
+   side legend, ranked owner rows. Base rules work on the cream
+   (.app-light) theme; .app-dark overrides carry the gold story.
+   ═════════════════════════════════════════════════════════════════ */
+.dash-wrap { padding-bottom: 0.5rem; }
+
+/* KPI cards — unify to one champagne accent and keep the card itself dark
+   glass (faint gold corner glow + thin gold border), so bright numbers and
+   the gold icon chip carry the colour rather than a washed gold fill.
+   Re-points the existing --kpi-color var; higher specificity wins. */
+.app-dark [data-kpi].dash-kpi {
+  --kpi-color: 212,184,123;
+  background:
+    radial-gradient(ellipse 70% 90% at 100% 0%, rgba(212,184,123,0.15), transparent 62%),
+    linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)) !important;
+  border-color: rgba(212,184,123,0.22) !important;
+}
+
+.dash-kpi-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: rgba(154,115,53,0.12);
+  border: 1px solid rgba(154,115,53,0.30);
+  color: #9a7335;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.app-dark .dash-kpi-chip {
+  background: linear-gradient(160deg, rgba(212,184,123,0.22), rgba(212,184,123,0.08));
+  border-color: rgba(212,184,123,0.40);
+  color: #e6cf94;
+  box-shadow: 0 0 18px -6px rgba(212,184,123,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.dash-kpi:hover .dash-kpi-chip { transform: scale(1.06) rotate(-3deg); }
+
+.dash-kpi-value {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 1.7rem; font-weight: 700; line-height: 1.05; color: #3a2f1d;
+}
+/* Dark mode: bright warm-white number (like the reference) — gold lives in
+   the icon chip, not the digits, so the value reads with full contrast
+   instead of gold-on-gold. */
+.app-dark .dash-kpi-value {
+  background: none;
+  -webkit-background-clip: border-box; background-clip: border-box;
+  color: #f7f2e7;
+}
+.dash-kpi-label { font-size: 0.72rem; color: rgba(58,47,29,0.6); margin-top: 1px; }
+.app-dark .dash-kpi-label { color: rgba(245,230,194,0.72); }
+/* Sub-line shows the stat, then cross-fades to a "Click to view" cue on
+   hover. Both spans share one grid cell (stacked, no absolute positioning)
+   and use an explicit px size so dark mode renders exactly as neatly as
+   light mode — only the colour differs between themes. */
+.dash-kpi-sub { display: grid; margin-top: 10px; font-size: 11px; line-height: 1.4; letter-spacing: 0.02em; }
+.dash-kpi-sub > span {
+  grid-column: 1; grid-row: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: opacity .2s ease;
+}
+.dash-kpi-sub-stat { color: rgba(58,47,29,0.5); }
+.app-dark .dash-kpi-sub-stat { color: rgba(245,230,194,0.5); }
+.dash-kpi-sub-cta { opacity: 0; font-weight: 600; color: #9a7335; }
+.app-dark .dash-kpi-sub-cta { color: #e6cf94; }
+.dash-kpi:hover .dash-kpi-sub-stat { opacity: 0; }
+.dash-kpi:hover .dash-kpi-sub-cta  { opacity: 1; }
+
+/* List rows — slide + brighten on hover so the hovered item reads clearly.
+   Truncated names also surface in full via the native title tooltip. */
+.dash-row:hover { transform: translateX(3px); }
+
+/* Status donut — centre total label */
+.dash-donut-wrap { position: relative; width: 130px; }
+.dash-donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.dash-donut-total {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 1.5rem; font-weight: 700; line-height: 1; color: #3a2f1d;
+}
+.app-dark .dash-donut-total { color: #f5e6c2; }
+.dash-donut-label {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.18em;
+  color: rgba(58,47,29,0.5); margin-top: 2px;
+}
+.app-dark .dash-donut-label { color: rgba(245,230,194,0.55); }
+
+/* Donut side legend rows (clickable → drill-down) */
+.dash-legend-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 5px 8px; border-radius: 8px; text-align: left;
+  background: transparent; border: none; cursor: pointer;
+  transition: background-color .2s ease;
+}
+.dash-legend-row:hover { background: rgba(154,115,53,0.08); }
+.app-dark .dash-legend-row:hover { background: rgba(212,184,123,0.10); }
+.dash-legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.dash-legend-name {
+  flex: 1; min-width: 0; font-size: 0.78rem; color: #4a3d28;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-dark .dash-legend-name { color: rgba(255,245,230,0.85); }
+.dash-legend-val {
+  font-size: 0.78rem; font-weight: 600; color: #3a2f1d; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.app-dark .dash-legend-val { color: #f5e6c2; }
+.dash-legend-pct { margin-left: 4px; font-weight: 500; font-size: 0.68rem; color: rgba(58,47,29,0.45); }
+.app-dark .dash-legend-pct { color: rgba(245,230,194,0.45); }
+
+/* Ranked list rows — Top Owners (reference "Top Suppliers") */
+.dash-rank-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: 10px; text-align: left;
+  background: rgba(0,0,0,0.015); border: 1px solid transparent; cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.dash-rank-row:hover { background: rgba(154,115,53,0.08); border-color: rgba(154,115,53,0.18); }
+.app-dark .dash-rank-row { background: rgba(255,255,255,0.02); }
+.app-dark .dash-rank-row:hover { background: rgba(212,184,123,0.10); border-color: rgba(212,184,123,0.22); }
+.dash-rank-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600;
+  color: rgba(58,47,29,0.4); width: 20px; flex-shrink: 0;
+}
+.app-dark .dash-rank-num { color: rgba(230,201,120,0.55); }
+.dash-rank-name {
+  flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 500; color: #4a3d28;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-dark .dash-rank-name { color: rgba(255,245,230,0.9); }
+.dash-rank-val {
+  font-size: 0.82rem; font-weight: 700; color: #9a7335; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.app-dark .dash-rank-val { color: #e6cf94; }
+
+/* List cards: cap height + scroll so the three columns stay aligned and the
+   page itself never scrolls. */
+.dash-list-scroll { max-height: 180px; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
+
+/* Dashboard chart cards → champagne accent (overrides the violet/rose/etc.
+   per-accent hues) so the dark board stays monochrome-gold like the reference. */
+.app-dark [data-accent="trend"]    { --acc-color: 212,184,123; }
+.app-dark [data-accent="status"]   { --acc-color: 212,184,123; }
+.app-dark [data-accent="priority"] { --acc-color: 212,184,123; }
+.app-dark [data-accent="phase"]    { --acc-color: 212,184,123; }
+
+/* Segmented tab toggle inside chart-card headers (Status/Priority,
+   By Owner/By Phase) — dark glass track with a champagne active pill. */
+.dash-tabs {
+  display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px;
+  background: rgba(0,0,0,0.04); border: 1px solid rgba(154,115,53,0.18);
+}
+.app-dark .dash-tabs { background: rgba(255,255,255,0.04); border-color: rgba(212,184,123,0.18); }
+.dash-tab {
+  padding: 3px 10px; border-radius: 7px; font-size: 11px; font-weight: 600;
+  color: rgba(58,47,29,0.55); background: transparent; border: none;
+  cursor: pointer; white-space: nowrap; transition: color .2s ease, background-color .2s ease;
+}
+.dash-tab:hover { color: #9a7335; }
+.dash-tab.is-active { background: #fff; color: #5a4a32; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.app-dark .dash-tab { color: rgba(245,230,194,0.5); }
+.app-dark .dash-tab:hover { color: #e6cf94; }
+.app-dark .dash-tab.is-active {
+  background: linear-gradient(160deg, rgba(212,184,123,0.28), rgba(212,184,123,0.12));
+  color: #f7f2e7; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+/* Project Tracker table — luxe header bar + champagne row numbers, matching
+   the dashboard's gold story in both themes. */
+.dash-thead { background: rgba(154,115,53,0.06); }
+.app-light .dash-thead { background: rgba(154,115,53,0.07); }
+.app-dark .dash-thead  { background: rgba(212,184,123,0.07); }
+.app-light .dash-thead th { color: #7a5a26 !important; }
+.app-dark .dash-thead th  { color: rgba(230,201,120,0.78) !important; }
+.dash-num { color: rgba(58,47,29,0.4); }
+.app-light .dash-num { color: rgba(154,115,53,0.7) !important; }
+.app-dark .dash-num  { color: rgba(230,201,120,0.6) !important; }
+/* Airier rows now that the table is paginated to 7 */
+.project-row td { padding-top: 0.9rem; padding-bottom: 0.9rem; }
+/* Impact cell → champagne */
+.dash-impact { font-weight: 500; }
+.app-light .dash-impact { color: #9a7335; }
+.app-dark .dash-impact  { color: #e6cf94; }
+/* Gold progress fill (opt-in via <ProgressBar gold />) */
+.dash-pbar-gold { background: linear-gradient(90deg, #caa15a, #e6cf94) !important; }
+
+/* Pagination pager — luxe controls with a champagne active page */
+.dash-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-top: 16px;
+}
+.dash-pager-info { font-size: 13px; color: rgba(58,47,29,0.55); }
+.app-dark .dash-pager-info { color: rgba(245,230,194,0.55); }
+.dash-pager-controls { display: flex; align-items: center; gap: 4px; }
+.dash-pager-btn {
+  min-width: 34px; height: 34px; padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px; font-size: 13px; font-weight: 600;
+  color: rgba(58,47,29,0.6); background: transparent;
+  border: 1px solid rgba(154,115,53,0.18); cursor: pointer;
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease;
+}
+.dash-pager-btn:hover:not(:disabled) { border-color: rgba(154,115,53,0.4); color: #7a5a26; background: rgba(154,115,53,0.06); }
+.dash-pager-btn:disabled { opacity: 0.4; cursor: default; }
+.dash-pager-btn.is-active { background: linear-gradient(160deg, #e6cf94, #caa15a); color: #2a2113; border-color: rgba(212,184,123,0.6); }
+.dash-pager-ellipsis { padding: 0 4px; color: rgba(58,47,29,0.4); }
+.app-dark .dash-pager-btn { color: rgba(245,230,194,0.6); border-color: rgba(212,184,123,0.2); }
+.app-dark .dash-pager-btn:hover:not(:disabled) { border-color: rgba(212,184,123,0.45); color: #f7f2e7; background: rgba(212,184,123,0.08); }
+.app-dark .dash-pager-btn.is-active { color: #2a2113; box-shadow: 0 0 16px -6px rgba(212,184,123,0.6); }
+.app-dark .dash-pager-ellipsis { color: rgba(245,230,194,0.4); }
+
+/* Recharts axis ticks + grid — theme-aware so they read on both cream and
+   black. !important overrides the inline fill/stroke set in DashboardCharts. */
+.app-dark .recharts-cartesian-axis-tick-value  { fill: rgba(245,230,194,0.60) !important; }
+.app-light .recharts-cartesian-axis-tick-value { fill: rgba(58,47,29,0.62) !important; }
+.app-dark .recharts-cartesian-grid line  { stroke: rgba(255,255,255,0.06) !important; }
+.app-light .recharts-cartesian-grid line { stroke: rgba(154,115,53,0.14) !important; }
+
+/* ═════════════════════════════════════════════════════════════════
+   PROJECT DETAIL HERO — executive project sheet (reference-matched).
+   Real-data only: badges, title, gold subtitle, overall-progress block
+   with a segmented champagne bar, and a phase stepper.
+   ═════════════════════════════════════════════════════════════════ */
+.pd-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(58,47,29,0.55); }
+.app-dark .pd-eyebrow { color: rgba(230,201,120,0.8); }
+.pd-phase-pill {
+  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: rgba(154,115,53,0.1); color: #7a5a26; border: 1px solid rgba(154,115,53,0.25);
+}
+.app-dark .pd-phase-pill { background: rgba(212,184,123,0.1); color: #e6cf94; border-color: rgba(212,184,123,0.28); }
+.pd-title {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: clamp(1.7rem, 3.5vw, 2.6rem); font-weight: 700; line-height: 1.05;
+  letter-spacing: -0.02em; text-transform: uppercase; color: #2a2113;
+}
+.app-dark .pd-title { color: #f7f2e7; }
+.pd-subtitle { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 1.05rem; margin-top: 4px; color: #9a7335; }
+.app-dark .pd-subtitle { color: #e6cf94; }
+
+.pd-progress-card {
+  flex-shrink: 0; width: 260px; max-width: 100%;
+  border: 1px solid rgba(154,115,53,0.2); border-radius: 16px; padding: 18px 20px;
+  background: rgba(154,115,53,0.04);
+}
+.app-dark .pd-progress-card {
+  border-color: rgba(212,184,123,0.2);
+  background: radial-gradient(ellipse 80% 100% at 100% 0%, rgba(212,184,123,0.12), transparent 70%), rgba(255,255,255,0.02);
+}
+.pd-progress-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(58,47,29,0.5); }
+.app-dark .pd-progress-eyebrow { color: rgba(245,230,194,0.55); }
+.pd-progress-pct { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2.6rem; font-weight: 700; line-height: 1; margin: 4px 0 12px; color: #caa15a; }
+.app-dark .pd-progress-pct { background: linear-gradient(180deg, #f7ead0, #e6cf94 60%, #caa15a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pd-segbar { display: flex; gap: 4px; }
+.pd-seg { flex: 1; height: 12px; border-radius: 3px; background: rgba(154,115,53,0.15); transition: background .3s ease; }
+.app-dark .pd-seg { background: rgba(255,255,255,0.08); }
+.pd-seg.is-on { background: linear-gradient(180deg, #e6cf94, #caa15a); }
+.app-dark .pd-seg.is-on { background: linear-gradient(180deg, #f7ead0, #caa15a); box-shadow: 0 0 10px -2px rgba(212,184,123,0.6); }
+.pd-progress-sub { font-size: 12px; font-weight: 600; margin-top: 8px; color: #9a7335; }
+.app-dark .pd-progress-sub { color: #e6cf94; }
+
+/* Phase stepper */
+.pd-stepper { display: flex; align-items: flex-start; min-width: 540px; }
+.pd-step { display: flex; flex-direction: column; align-items: center; gap: 7px; flex-shrink: 0; width: 110px; }
+.pd-step-line { flex: 1; min-width: 24px; height: 2px; margin-top: 19px; background: rgba(154,115,53,0.2); border-radius: 2px; }
+.app-dark .pd-step-line { background: rgba(255,255,255,0.1); }
+.pd-step-line.is-done { background: linear-gradient(90deg, #caa15a, #e6cf94); }
+.pd-step-dot {
+  width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; font-family: 'Space Grotesk', system-ui, sans-serif;
+  border: 2px solid rgba(154,115,53,0.3); color: rgba(58,47,29,0.5); background: transparent;
+}
+.app-dark .pd-step-dot { border-color: rgba(255,255,255,0.15); color: rgba(245,230,194,0.5); }
+.pd-step.done .pd-step-dot { border-color: #caa15a; color: #caa15a; background: rgba(212,184,123,0.12); }
+.app-dark .pd-step.done .pd-step-dot { border-color: rgba(212,184,123,0.6); color: #e6cf94; }
+.pd-step.current .pd-step-dot {
+  border-color: #caa15a; color: #2a2113; background: linear-gradient(160deg, #f7ead0, #caa15a);
+  box-shadow: 0 0 0 4px rgba(212,184,123,0.18), 0 0 18px -2px rgba(212,184,123,0.6);
+}
+.pd-step-label { font-size: 13px; font-weight: 600; color: rgba(58,47,29,0.7); text-align: center; }
+.app-dark .pd-step-label { color: rgba(245,230,194,0.85); }
+.pd-step.current .pd-step-label { color: #9a7335; }
+.app-dark .pd-step.current .pd-step-label { color: #f7f2e7; }
+.pd-step.todo .pd-step-label { color: rgba(58,47,29,0.4); }
+.app-dark .pd-step.todo .pd-step-label { color: rgba(245,230,194,0.4); }
+.pd-step-here { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #caa15a; min-height: 12px; }
+.app-dark .pd-step-here { color: #e6cf94; }
+
+/* ── Project-dashboard tab (inside an individual project) ── */
+.pd-kpi { display: flex; align-items: flex-start; gap: 16px; }
+.pd-hex { position: relative; width: 54px; height: 54px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+.pd-hex-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pd-hex-svg polygon { fill: rgba(154,115,53,0.06); stroke: rgba(154,115,53,0.4); stroke-width: 3; }
+.app-dark .pd-hex-svg polygon { fill: rgba(212,184,123,0.07); stroke: rgba(212,184,123,0.45); }
+.pd-hex-icon { position: relative; color: #9a7335; }
+.app-dark .pd-hex-icon { color: #e6cf94; }
+.pd-kpi-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(58,47,29,0.5); }
+.app-dark .pd-kpi-eyebrow { color: rgba(245,230,194,0.6); }
+.pd-kpi-num { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2.1rem; font-weight: 700; line-height: 1.1; color: #2a2113; }
+.app-dark .pd-kpi-num { color: #f7f2e7; }
+.pd-kpi-sub2 { font-size: 12px; color: rgba(58,47,29,0.5); margin-top: 2px; }
+.app-dark .pd-kpi-sub2 { color: rgba(245,230,194,0.5); }
+.pd-kpi-pct { color: #9a7335; }
+.app-dark .pd-kpi-pct { color: #e6cf94; }
+
+.pd-ms-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid; flex-shrink: 0; background: radial-gradient(circle, currentColor 0 3.5px, transparent 4.5px); }
+.pd-viewall { align-self: flex-start; font-size: 13px; font-weight: 600; color: #9a7335; }
+.pd-viewall:hover { text-decoration: underline; }
+.app-dark .pd-viewall { color: #e6cf94; }
+
+.pd-activity-row { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; position: relative; }
+.pd-activity-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; background: #caa15a; box-shadow: 0 0 0 3px rgba(212,184,123,0.15); }
+.app-dark .pd-activity-dot { background: #e6cf94; box-shadow: 0 0 0 3px rgba(212,184,123,0.12); }
+.pd-activity-row:not(:last-child)::before { content: ''; position: absolute; left: 4px; top: 18px; bottom: -9px; width: 1px; background: rgba(154,115,53,0.2); }
+.app-dark .pd-activity-row:not(:last-child)::before { background: rgba(212,184,123,0.18); }
