@@ -1022,21 +1022,19 @@ function Layout() {
     {/* Floating quick-icons (theme / admin / logout / login) — top-right on all pages except landing */}
     {!isLanding && (
       <div
-        className="fixed top-4 right-4 z-50 flex items-center gap-1 bg-surface-900 rounded-xl px-1.5 py-1 shadow-lg"
+        className="fixed top-4 right-4 z-50 flex items-center gap-1.5 bg-surface-900 rounded-2xl px-2 py-1.5 shadow-lg"
         style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
       >
         {/* Theme toggle — mobile only (desktop has it in the sidebar) */}
         <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-          className="lg:hidden p-2 text-surface-300 hover:text-white transition-colors"
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors"
           title="Toggle theme" aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
         {isAdmin ? (
-          <>
-            <button onClick={signOut} className="p-2 text-surface-300 hover:text-white transition-colors" title="Sign out"><LogOut size={18} /></button>
-          </>
+          <button onClick={signOut} className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors" title="Sign out"><LogOut size={18} /></button>
         ) : (
-          <Link to="/login" className="p-2 text-surface-300 hover:text-white transition-colors" title="Admin login"><LogIn size={18} /></Link>
+          <Link to="/login" className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors" title="Admin login"><LogIn size={18} /></Link>
         )}
       </div>
     )}

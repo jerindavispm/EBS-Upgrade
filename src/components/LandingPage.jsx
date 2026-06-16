@@ -995,7 +995,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
           </div>
 
           {/* Mobile — theme toggle + hamburger */}
-          <div className="sm:hidden flex items-center justify-end gap-2 pointer-events-auto">
+          <div className="hero-nav-mobile-bar sm:hidden flex items-center justify-end gap-3 pr-1 pointer-events-auto">
             <button
               type="button"
               onClick={() => setLightMode(v => !v)}

@@ -3248,3 +3248,23 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   transition: background-color .2s ease, color .2s ease;
 }
 .luxe-mobile-nav-item:hover { background: rgba(212,184,123,0.10); color: #f5e6c2; }
+
+/* Hide the native iOS/WebKit "tap to play" overlay + any controls on the hero
+   background videos — they must read as silent looping backdrops, never as a
+   tappable, pausable player. */
+.hero-video-dark::-webkit-media-controls,
+.hero-video-light::-webkit-media-controls,
+.hero-video-dark::-webkit-media-controls-panel,
+.hero-video-light::-webkit-media-controls-panel,
+.hero-video-dark::-webkit-media-controls-start-playback-button,
+.hero-video-light::-webkit-media-controls-start-playback-button,
+.hero-video-dark::-webkit-media-controls-overlay-play-button,
+.hero-video-light::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+}
+
+/* Mobile hero nav buttons (theme toggle + hamburger) — larger, roomier tap
+   targets so they don't look cramped. */
+.hero-nav-mobile-bar .hero-nav-theme-toggle { width: 40px; height: 40px; }
