@@ -3229,3 +3229,22 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .app-dark .pd-activity-dot { background: #e6cf94; box-shadow: 0 0 0 3px rgba(212,184,123,0.12); }
 .pd-activity-row:not(:last-child)::before { content: ''; position: absolute; left: 4px; top: 18px; bottom: -9px; width: 1px; background: rgba(154,115,53,0.2); }
 .app-dark .pd-activity-row:not(:last-child)::before { background: rgba(212,184,123,0.18); }
+
+/* Landing hero — mobile dropdown nav (hamburger menu) */
+.luxe-mobile-nav {
+  background: rgba(18,13,8,0.94);
+  border: 1px solid rgba(212,184,123,0.28);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 16px 40px -14px rgba(0,0,0,0.75);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.luxe-mobile-nav-item {
+  display: block; width: 100%; text-align: center;
+  padding: 11px 14px; border-radius: 9px;
+  font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(245,230,194,0.85); background: transparent; border: none; cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
+}
+.luxe-mobile-nav-item:hover { background: rgba(212,184,123,0.10); color: #f5e6c2; }

@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect, useState, useCallback, useRef, useLayoutEffect, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ChevronDown, ChevronUp, ArrowRight, Users, User,
+  ChevronDown, ChevronUp, ArrowRight, Users, User, Menu, X,
   Sparkles, Target, Mail, Rocket, Sun, Moon,
   Cloud, Database, Shield, BarChart3, Cog,
   TrendingUp, DollarSign, ShoppingCart,
@@ -11,6 +11,15 @@ import { EditableText, EditableImage } from './Editable'
 import { useInView } from '../hooks/useInView'
 
 const BusinessCard    = React.lazy(() => import('./BusinessCard'))
+
+// Hero nav items (shared by the desktop inline nav and the mobile dropdown).
+const NAV_ITEMS = [
+  { id: 'about',    label: 'About Us' },
+  { id: 'moonshot', label: 'Moonshot Projects' },
+  { id: 'vision',   label: 'Our Vision' },
+  { id: 'team',     label: 'Our Team' },
+  { id: 'contact',  label: 'Contact', isContact: true },
+]
 
 // Scroll-reveal wrapper — fades + slides up when scrolled into view.
 // Stagger lists by passing increasing `delay` (ms).
@@ -679,6 +688,19 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
   const videoRef      = useRef(null)
   const hoverCountRef = useRef(0)
   const [videoFocused, setVideoFocused] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
+  // Nudge the hero video to play — Brave / iOS often block autoplay despite
+  // muted + playsInline, so we call play() on mount and retry on first touch.
+  useEffect(() => {
+    const play = () => document.querySelectorAll('.hero-video-dark, .hero-video-light').forEach(v => {
+      const p = v.play && v.play(); if (p && p.catch) p.catch(() => {})
+    })
+    play()
+    const once = () => { play(); window.removeEventListener('pointerdown', once); window.removeEventListener('touchstart', once) }
+    window.addEventListener('pointerdown', once, { once: true })
+    window.addEventListener('touchstart', once, { once: true })
+    return () => { window.removeEventListener('pointerdown', once); window.removeEventListener('touchstart', once) }
+  }, [])
   const onCardHover = useCallback(() => {
     hoverCountRef.current += 1
     setVideoFocused(true)
@@ -935,7 +957,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
             that by anchoring the nav at top: 0 and using pt-14 to push
             the text down to its prior visual position. */}
         <nav
-          className="absolute left-0 right-0 z-50 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:gap-10 pt-14 pb-4 px-4 sm:px-6 pointer-events-none"
+          className="absolute left-0 right-0 z-50 pt-14 pb-4 px-4 sm:px-6 pointer-events-none"
           style={{
             top: 0,
             background:
@@ -945,37 +967,69 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
         >
           {/* Etched gold thread along the bottom edge — matches the section rim threads */}
           <div className="luxe-rim-bottom" />
-          {[
-            { id: 'about',    label: 'About Us' },
-            { id: 'moonshot', label: 'Moonshot Projects' },
-            { id: 'vision',   label: 'Our Vision' },
-            { id: 'team',     label: 'Our Team' },
-            { id: 'contact',  label: 'Contact', isContact: true },
-          ].map((item, i) => (
-            <Fragment key={item.id}>
-              {i > 0 && <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />}
-              <button
-                type="button"
-                onClick={() => item.isContact ? setCardOpen(true) : scrollToSectionWithCompletion(item.id)}
-                className="pointer-events-auto text-[10px] sm:text-xs luxe-nav-item"
-              >
-                {item.label}
-              </button>
-            </Fragment>
-          ))}
-          {/* Theme toggle — small luxe gold pill that sits in the nav.
-              In sync with the floating dock toggle (both flip the same
-              lightMode state). */}
-          <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />
-          <button
-            type="button"
-            onClick={() => setLightMode(v => !v)}
-            className="hero-nav-theme-toggle pointer-events-auto"
-            aria-label={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
-            title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {lightMode ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
-          </button>
+
+          {/* Desktop / tablet — inline links + theme toggle */}
+          <div className="hidden sm:flex items-center justify-center gap-10">
+            {NAV_ITEMS.map((item, i) => (
+              <Fragment key={item.id}>
+                {i > 0 && <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />}
+                <button
+                  type="button"
+                  onClick={() => item.isContact ? setCardOpen(true) : scrollToSectionWithCompletion(item.id)}
+                  className="pointer-events-auto text-xs luxe-nav-item"
+                >
+                  {item.label}
+                </button>
+              </Fragment>
+            ))}
+            <span className="luxe-nav-dot pointer-events-none" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => setLightMode(v => !v)}
+              className="hero-nav-theme-toggle pointer-events-auto"
+              aria-label={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+              title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {lightMode ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
+            </button>
+          </div>
+
+          {/* Mobile — theme toggle + hamburger */}
+          <div className="sm:hidden flex items-center justify-end gap-2 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setLightMode(v => !v)}
+              className="hero-nav-theme-toggle"
+              aria-label={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+              title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {lightMode ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setNavOpen(o => !o)}
+              className="hero-nav-theme-toggle"
+              aria-label={navOpen ? 'Close menu' : 'Open menu'}
+            >
+              {navOpen ? <X size={15} strokeWidth={1.8} /> : <Menu size={15} strokeWidth={1.8} />}
+            </button>
+          </div>
+
+          {/* Mobile — dropdown menu */}
+          {navOpen && (
+            <div className="sm:hidden mt-3 mx-auto w-full max-w-xs flex flex-col gap-1 pointer-events-auto luxe-mobile-nav">
+              {NAV_ITEMS.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { item.isContact ? setCardOpen(true) : scrollToSectionWithCompletion(item.id); setNavOpen(false) }}
+                  className="luxe-mobile-nav-item"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* Ambient light pools — stronger gold glows for a richer luxe feel */}

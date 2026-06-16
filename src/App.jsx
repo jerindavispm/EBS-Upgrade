@@ -1007,24 +1007,30 @@ function Layout() {
     {/* Backdrop — always present when sidebar is open (all screen sizes) */}
     {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setSidebarOpen(false)} />}
 
-    {/* Floating toggle — always visible; Menu icon when closed, Close when open */}
+    {/* Floating toggle — desktop only; on mobile the bottom dock replaces the sidebar */}
     {!isLanding && (
       <button
         onClick={() => setSidebarOpen(o => !o)}
         aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-        className="fixed top-4 left-4 z-50 w-11 h-11 rounded-xl bg-surface-900 text-white shadow-lg hover:bg-surface-800 flex items-center justify-center transition-colors"
+        className="fixed top-4 left-4 z-50 w-11 h-11 rounded-xl bg-surface-900 text-white shadow-lg hover:bg-surface-800 hidden lg:flex items-center justify-center transition-colors"
         style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
       >
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
     )}
 
-    {/* Floating quick-icons (admin / logout / login) — top-right on all pages except landing */}
+    {/* Floating quick-icons (theme / admin / logout / login) — top-right on all pages except landing */}
     {!isLanding && (
       <div
         className="fixed top-4 right-4 z-50 flex items-center gap-1 bg-surface-900 rounded-xl px-1.5 py-1 shadow-lg"
         style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
       >
+        {/* Theme toggle — mobile only (desktop has it in the sidebar) */}
+        <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          className="lg:hidden p-2 text-surface-300 hover:text-white transition-colors"
+          title="Toggle theme" aria-label="Toggle theme">
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         {isAdmin ? (
           <>
             <button onClick={signOut} className="p-2 text-surface-300 hover:text-white transition-colors" title="Sign out"><LogOut size={18} /></button>
