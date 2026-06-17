@@ -21,8 +21,9 @@ if ('serviceWorker' in navigator) {
 // stop being silent. Throttle to once per 3s so a runaway loop doesn't spam.
 let _lastErrorAt = 0
 // Noise injected by mobile browsers / extensions (Firefox iOS reader, Brave,
-// Grammarly, ResizeObserver, cross-origin "Script error.") — NOT our app.
-const IGNORE_ERR = /__firefox__|__brave__|reader|ResizeObserver loop|Script error\.?$|Non-Error promise rejection|chrome-extension|moz-extension/i
+// crypto-wallet providers, Grammarly, ResizeObserver, cross-origin "Script
+// error.") — NOT our app.
+const IGNORE_ERR = /__firefox__|__brave__|reader|window\.ethereum|selectedAddress|web3|evmAsk|solana|ResizeObserver loop|Script error\.?$|Non-Error promise rejection|chrome-extension|moz-extension/i
 function reportGlobal(label, detail) {
   const msg = (detail && detail.message) || (typeof detail === 'string' ? detail : '') || ''
   if (IGNORE_ERR.test(msg)) return
