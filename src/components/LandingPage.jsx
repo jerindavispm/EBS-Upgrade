@@ -1548,7 +1548,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
 
       {/* ─── Footer ──────────────────────────────────────────── */}
       <footer id="contact" className="landing-footer-luxe scroll-mt-4">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 pb-28 lg:pb-10">
           <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] items-center gap-8 sm:gap-12">
             {/* Union Trading Co. logo — full opacity, no drop-shadow */}
             <div className="flex items-center justify-center sm:justify-start">

@@ -783,149 +783,76 @@ async function generateReport(projects) {
   t.addText('Date:', { x: 1.26, y: 6.47, w: 5, h: 0.24, fontSize: 9, color: '9A8E78', fontFace: FONT })
   t.addText(todayStr, { x: 1.26, y: 6.69, w: 5, h: 0.3, fontSize: 12, color: WHITE, fontFace: FONT })
 
-  // ─── Slide 2: Executive Summary ───
-  const es = pptx.addSlide(); es.background = { color: PAGE_BG }
-  slideHeader(es, 1, 'EXECUTIVE SUMMARY')
-  es.addText(`${currentMonth} ${currentYear}`, { x: 0.92, y: 0.92, w: 4, h: 0.25, fontSize: 9, color: BRAND, fontFace: FONT })
+  // ─── Slide 2: All details on one slide ───
+  const s = pptx.addSlide(); s.background = { color: PAGE_BG }
+  s.addText('Monthly Business Review', { x: 0.4, y: 0.28, w: 9, h: 0.45, fontSize: 20, bold: true, color: HEAD_DARK, fontFace: FONT })
+  s.addText(`EBS Projects   ·   ${currentMonth} ${currentYear}`, { x: 0.4, y: 0.72, w: 9, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
+  s.addText('EBS', { x: 11.6, y: 0.3, w: 1.35, h: 0.42, fontSize: 18, bold: true, color: BRAND, align: 'right', valign: 'middle', fontFace: FONT })
+  s.addShape(pptx.shapes.RECTANGLE, { x: 0.4, y: 1.06, w: 12.53, h: 0.012, fill: { color: CARD_BORDER } })
+
+  // KPI strip
   const kpis = [
     { label: 'Active Projects', value: String(total), color: CHAMP },
-    { label: 'Delivery Health', value: deliveryHealth + '%', color: GREEN },
+    { label: 'Delivery Health', value: deliveryHealth + '%', color: '34D399' },
     { label: 'Completion Rate', value: completionRate + '%', color: '7DB3F2' },
     { label: 'Critical Risks', value: String(criticalRisks), color: 'F87171' },
     { label: 'Decisions Needed', value: String(decisions.length), color: 'FBBF24' },
   ]
   kpis.forEach((k, i) => {
-    const x = 0.5 + i * 2.5
-    es.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x, y: 1.3, w: 2.3, h: 1.35, rectRadius: 0.1, fill: { color: HEAD_DARK } })
-    es.addText(k.value, { x, y: 1.45, w: 2.3, h: 0.65, fontSize: 28, bold: true, color: k.color, align: 'center', fontFace: FONT })
-    es.addText(k.label, { x: x + 0.1, y: 2.12, w: 2.1, h: 0.4, fontSize: 10, color: 'C9C2B5', align: 'center', fontFace: FONT })
-  })
-  // Key highlights
-  card(es, 0.5, 2.9, 7.2, 3.95)
-  es.addText('KEY HIGHLIGHTS', { x: 0.75, y: 3.05, w: 6, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  const hiArr = highlights.length
-    ? highlights.slice(0, 7).map(p => ({ text: `${p.project_name} — ${(p.status === 'Completed' || numPct(p.percent_complete) >= 100) ? 'Completed' : numPct(p.percent_complete) + '% complete'}`, options: { bullet: { code: '2713' }, color: '3CA36B' } }))
-    : [{ text: 'No highlights to report this month', options: { color: '888888' } }]
-  es.addText(hiArr, { x: 0.8, y: 3.45, w: 6.7, h: 3.25, fontSize: 11, color: TXT, valign: 'top', lineSpacingMultiple: 1.5, fontFace: FONT })
-  // Overall delivery health donut
-  card(es, 7.95, 2.9, 4.85, 3.95)
-  es.addText('OVERALL DELIVERY HEALTH', { x: 8.2, y: 3.05, w: 4.4, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  safeChart(es, 'doughnut', [{ name: 'Health', labels: ['On Track', 'Remaining'], values: [deliveryHealth, Math.max(0, 100 - deliveryHealth)] }],
-    { x: 8.55, y: 3.55, w: 3.6, h: 3.0, holeSize: 72, showLegend: false, showValue: false, chartColors: [GREEN, 'E6E2DA'] })
-  es.addText(`${deliveryHealth}%`, { x: 8.55, y: 4.65, w: 3.6, h: 0.6, fontSize: 30, bold: true, color: HEAD_DARK, align: 'center', fontFace: FONT })
-  es.addText('On Track', { x: 8.55, y: 5.2, w: 3.6, h: 0.3, fontSize: 11, color: GRAY, align: 'center', fontFace: FONT })
-
-  // ─── Slide 3: Portfolio Health ───
-  const ph = pptx.addSlide(); ph.background = { color: PAGE_BG }
-  slideHeader(ph, 2, 'PORTFOLIO HEALTH')
-  // Status doughnut
-  card(ph, 0.5, 1.1, 6.0, 3.0)
-  ph.addText('PROJECT STATUS', { x: 0.7, y: 1.25, w: 4, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  const stData = ['On Track', 'Completed', 'On Hold', 'Delayed', 'At Risk'].map(s => ({ s, v: cnt(s) })).filter(d => d.v > 0)
-  safeChart(ph, 'doughnut', [{ name: 'Status', labels: stData.map(d => d.s), values: stData.map(d => d.v) }],
-    { x: 0.6, y: 1.55, w: 2.5, h: 2.4, holeSize: 62, showLegend: false, showValue: false, chartColors: stData.map(d => statusHex[d.s]) })
-  ph.addText(String(total), { x: 0.6, y: 2.45, w: 2.5, h: 0.5, fontSize: 22, bold: true, color: HEAD_DARK, align: 'center', fontFace: FONT })
-  ph.addText('Total', { x: 0.6, y: 2.92, w: 2.5, h: 0.3, fontSize: 9, color: GRAY, align: 'center', fontFace: FONT })
-  stData.forEach((d, i) => {
-    const yy = 1.7 + i * 0.42
-    ph.addShape(pptx.shapes.RECTANGLE, { x: 3.5, y: yy, w: 0.16, h: 0.16, fill: { color: statusHex[d.s] } })
-    ph.addText(d.s, { x: 3.75, y: yy - 0.05, w: 1.7, h: 0.28, fontSize: 9, color: TXT, fontFace: FONT })
-    ph.addText(`${d.v} (${pctOf(d.v)}%)`, { x: 5.4, y: yy - 0.05, w: 0.95, h: 0.28, fontSize: 9, bold: true, color: TXT, align: 'right', fontFace: FONT })
-  })
-  // Department bar
-  card(ph, 6.7, 1.1, 6.2, 3.0)
-  ph.addText('PROJECTS BY DEPARTMENT', { x: 6.9, y: 1.25, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  const deptCount = {}
-  projects.forEach(p => { const d = p.dept_module || 'Unassigned'; deptCount[d] = (deptCount[d] || 0) + 1 })
-  const depts = Object.entries(deptCount).sort((a, b) => b[1] - a[1]).slice(0, 6)
-  safeChart(ph, 'bar', [{ name: 'Projects', labels: depts.map(d => d[0].length > 20 ? d[0].slice(0, 20) + '…' : d[0]), values: depts.map(d => d[1]) }],
-    { x: 6.85, y: 1.55, w: 5.9, h: 2.45, barDir: 'bar', showLegend: false, showValue: true, dataLabelColor: TXT, dataLabelFontSize: 9, chartColors: [BRAND], catAxisLabelColor: '555555', catAxisLabelFontSize: 9, valAxisHidden: true })
-  // Completion rate + delivery health summary
-  card(ph, 0.5, 4.3, 6.0, 2.55)
-  ph.addText('COMPLETION RATE', { x: 0.7, y: 4.45, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  ph.addText(`${completionRate}%`, { x: 0.7, y: 4.9, w: 5, h: 1.0, fontSize: 48, bold: true, color: BRAND, fontFace: FONT })
-  ph.addText('Average % complete across all active projects', { x: 0.7, y: 5.95, w: 5.6, h: 0.4, fontSize: 10, color: GRAY, fontFace: FONT })
-  card(ph, 6.7, 4.3, 6.2, 2.55)
-  ph.addText('DELIVERY HEALTH', { x: 6.9, y: 4.45, w: 5, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  ph.addText(`${deliveryHealth}%`, { x: 6.9, y: 4.9, w: 5, h: 1.0, fontSize: 48, bold: true, color: GREEN, fontFace: FONT })
-  ph.addText('Share of projects On Track or Completed', { x: 6.9, y: 5.95, w: 5.8, h: 0.4, fontSize: 10, color: GRAY, fontFace: FONT })
-
-  // ─── Slide 4: Risks & Issues ───
-  const rk = pptx.addSlide(); rk.background = { color: PAGE_BG }
-  slideHeader(rk, 3, 'RISKS & ISSUES')
-  let riskSrc = allRisks.length
-    ? allRisks.map(r => ({ project: pNameById[r.project_id] || '—', issue: r.description || '—', sev: r.impact || '—', like: r.likelihood || '—', owner: r.owner || '—' }))
-    : projects.filter(p => ['Delayed', 'At Risk', 'On Hold'].includes(p.status)).map(p => ({ project: p.project_name, issue: p.key_risks || '—', sev: p.status === 'Delayed' ? 'High' : p.status === 'At Risk' ? 'Medium' : 'Low', like: '—', owner: p.business_owner || '—' }))
-  const sevRank = { High: 0, Medium: 1, Low: 2 }
-  riskSrc = riskSrc.sort((a, b) => (sevRank[a.sev] ?? 3) - (sevRank[b.sev] ?? 3)).slice(0, 8)
-  const cellOpt = { fontFace: FONT, fontSize: 10, color: TXT, valign: 'middle' }
-  const rkHead = ['Project', 'Issue / Risk', 'Severity', 'Likelihood', 'Owner'].map(h => ({ text: h, options: { ...cellOpt, bold: true, color: WHITE, fill: { color: HEAD_DARK } } }))
-  const rkBody = riskSrc.length
-    ? riskSrc.map(r => [
-        { text: r.project, options: { ...cellOpt, bold: true } },
-        { text: String(r.issue).slice(0, 100), options: cellOpt },
-        { text: r.sev, options: { ...cellOpt, bold: true, color: impactHex[r.sev] || TXT } },
-        { text: r.like, options: cellOpt },
-        { text: r.owner, options: cellOpt },
-      ])
-    : [[{ text: 'No active risks recorded.', options: { ...cellOpt, colspan: 5, align: 'center' } }]]
-  rk.addTable([rkHead, ...rkBody], { x: 0.5, y: 1.15, w: 12.43, colW: [2.9, 4.6, 1.5, 1.6, 1.83], border: { type: 'solid', pt: 0.5, color: CARD_BORDER }, fill: { color: CARD }, rowH: 0.5, autoPage: false })
-  rk.addText(`${criticalRisks} high-severity item${criticalRisks === 1 ? '' : 's'} require immediate attention`, { x: 0.5, y: 6.6, w: 10, h: 0.35, fontSize: 10, italic: true, color: RED, fontFace: FONT })
-
-  // ─── Slide 5: Decisions Required ───
-  const dc = pptx.addSlide(); dc.background = { color: PAGE_BG }
-  slideHeader(dc, 4, 'DECISIONS REQUIRED')
-  const dcSrc = decisions.slice(0, 8)
-  const dcHead = ['Decision Needed', 'Project', 'Impact', 'Target', 'Owner'].map(h => ({ text: h, options: { ...cellOpt, bold: true, color: WHITE, fill: { color: HEAD_DARK } } }))
-  const dcBody = dcSrc.length
-    ? dcSrc.map(p => [
-        { text: String(p.actions_needed).trim().slice(0, 110), options: cellOpt },
-        { text: p.project_name, options: { ...cellOpt, bold: true } },
-        { text: p.business_impact || '—', options: { ...cellOpt, bold: true, color: impactHex[p.business_impact] || TXT } },
-        { text: p.end_date || p.est_end || '—', options: cellOpt },
-        { text: p.business_owner || '—', options: cellOpt },
-      ])
-    : [[{ text: 'No decisions pending.', options: { ...cellOpt, colspan: 5, align: 'center' } }]]
-  dc.addTable([dcHead, ...dcBody], { x: 0.5, y: 1.15, w: 12.43, colW: [4.5, 3.0, 1.6, 1.6, 1.73], border: { type: 'solid', pt: 0.5, color: CARD_BORDER }, fill: { color: CARD }, rowH: 0.5, autoPage: false })
-  dc.addText('Timely decisions are critical to maintain delivery momentum', { x: 0.5, y: 6.6, w: 10, h: 0.35, fontSize: 10, italic: true, color: GRAY, fontFace: FONT })
-
-  // ─── Slide 6: Project Spotlight ───
-  const sp = pptx.addSlide(); sp.background = { color: PAGE_BG }
-  slideHeader(sp, 5, 'PROJECT SPOTLIGHT')
-  const spot = [...projects].sort((a, b) => numPct(b.percent_complete) - numPct(a.percent_complete)).slice(0, 3)
-  spot.forEach((p, i) => {
-    const x = 0.5 + i * 4.18
-    card(sp, x, 1.15, 3.9, 5.4)
-    sp.addText(p.project_name, { x: x + 0.25, y: 1.35, w: 3.4, h: 0.7, fontSize: 14, bold: true, color: HEAD_DARK, valign: 'top', fontFace: FONT })
-    sp.addText(p.status || '—', { x: x + 0.25, y: 2.05, w: 3.4, h: 0.3, fontSize: 10, bold: true, color: statusHex[p.status] || GRAY, fontFace: FONT })
-    sp.addText(`${numPct(p.percent_complete)}%`, { x: x + 0.25, y: 2.5, w: 3.4, h: 0.7, fontSize: 36, bold: true, color: HEAD_DARK, fontFace: FONT })
-    sp.addText('Complete', { x: x + 0.25, y: 3.2, w: 3.4, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
-    sp.addText('PHASE', { x: x + 0.25, y: 3.75, w: 3.4, h: 0.25, fontSize: 8, bold: true, color: GRAY, charSpacing: 1, fontFace: FONT })
-    sp.addText(p.phase || '—', { x: x + 0.25, y: 4.0, w: 3.4, h: 0.3, fontSize: 11, color: TXT, fontFace: FONT })
-    sp.addText('BUSINESS IMPACT', { x: x + 0.25, y: 4.45, w: 3.4, h: 0.25, fontSize: 8, bold: true, color: GRAY, charSpacing: 1, fontFace: FONT })
-    sp.addText(p.objective ? String(p.objective).slice(0, 120) : (p.business_impact ? `${p.business_impact} impact` : '—'), { x: x + 0.25, y: 4.7, w: 3.4, h: 1.6, fontSize: 9, color: TXT, valign: 'top', lineSpacingMultiple: 1.3, fontFace: FONT })
+    const x = 0.4 + i * 2.542
+    s.addShape(pptx.shapes.ROUNDED_RECTANGLE, { x, y: 1.2, w: 2.362, h: 1.0, rectRadius: 0.1, fill: { color: HEAD_DARK } })
+    s.addText(k.value, { x, y: 1.3, w: 2.362, h: 0.5, fontSize: 23, bold: true, color: k.color, align: 'center', fontFace: FONT })
+    s.addText(k.label, { x: x + 0.05, y: 1.83, w: 2.262, h: 0.3, fontSize: 8.5, color: 'C9C2B5', align: 'center', fontFace: FONT })
   })
 
-  // ─── Slide 7: Next Month Focus (+ footer) ───
-  const nf = pptx.addSlide(); nf.background = { color: PAGE_BG }
-  slideHeader(nf, 6, 'NEXT MONTH FOCUS')
-  card(nf, 0.5, 1.15, 6.1, 5.2)
-  nf.addText('KEY PRIORITIES', { x: 0.75, y: 1.35, w: 5, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  const priNames = Array.from(new Set([...decisions.map(p => p.project_name), ...focus.map(p => p.project_name)])).slice(0, 6)
-  const priArr = priNames.length
-    ? priNames.map(n => ({ text: n, options: { bullet: { type: 'number' }, color: TXT } }))
-    : [{ text: 'No priorities flagged', options: { color: '888888' } }]
-  nf.addText(priArr, { x: 0.85, y: 1.8, w: 5.6, h: 4.4, fontSize: 12, color: TXT, valign: 'top', lineSpacingMultiple: 1.7, fontFace: FONT })
-  card(nf, 6.85, 1.15, 6.05, 5.2)
-  nf.addText('EXPECTED OUTCOMES', { x: 7.1, y: 1.35, w: 5, h: 0.3, fontSize: 12, bold: true, color: HEAD_DARK, charSpacing: 1, fontFace: FONT })
-  const outcomeSrc = (focus.filter(p => p.objective).concat(highlights.filter(p => p.objective))).slice(0, 6)
-  const outArr = outcomeSrc.length
-    ? outcomeSrc.map(p => ({ text: String(p.objective).slice(0, 90), options: { bullet: { code: '2713' }, color: '3CA36B' } }))
-    : [{ text: 'Continue delivery against the current roadmap', options: { bullet: { code: '2713' }, color: '3CA36B' } }]
-  nf.addText(outArr, { x: 7.2, y: 1.8, w: 5.5, h: 4.4, fontSize: 11, color: TXT, valign: 'top', lineSpacingMultiple: 1.6, fontFace: FONT })
-  nf.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 6.9, w: 13.33, h: 0.6, fill: { color: BG_DARK } })
-  nf.addText('Thank you.  Together, driving transformation and delivering value.', { x: 0.5, y: 6.9, w: 9, h: 0.6, fontSize: 11, color: 'C9C2B5', valign: 'middle', fontFace: FONT })
-  nf.addText('EBS', { x: 11.5, y: 6.9, w: 1.4, h: 0.6, fontSize: 16, bold: true, color: CHAMP, align: 'right', valign: 'middle', fontFace: FONT })
+  // Detail cards — 3 columns x 2 rows
+  const colW = 4.043, gap = 0.2
+  const gx = [0.4, 0.4 + colW + gap, 0.4 + 2 * (colW + gap)]
+  const r1 = 2.35, r2 = 4.83, cardH = 2.3
+  // Keep each bullet to one line (clip long text) and cap at 5 rows so cards never overflow.
+  const clip = (str, n = 54) => { const t = String(str); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+  const listCard = (x, y, title, lines, empty) => {
+    card(s, x, y, colW, cardH)
+    s.addText(title, { x: x + 0.18, y: y + 0.13, w: colW - 0.36, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 0.5, fontFace: FONT })
+    const body = (lines && lines.length)
+      ? lines.slice(0, 5).map(t => ({ text: clip(t), options: { bullet: { code: '2022' }, color: TXT } }))
+      : [{ text: empty, options: { color: '999999' } }]
+    s.addText(body, { x: x + 0.24, y: y + 0.54, w: colW - 0.42, h: cardH - 0.66, fontSize: 8.5, color: TXT, valign: 'top', lineSpacingMultiple: 1.4, fontFace: FONT })
+  }
+
+  // Status Overview (colored dots)
+  card(s, gx[0], r1, colW, cardH)
+  s.addText('STATUS OVERVIEW', { x: gx[0] + 0.18, y: r1 + 0.13, w: colW - 0.36, h: 0.3, fontSize: 11, bold: true, color: HEAD_DARK, charSpacing: 0.5, fontFace: FONT })
+  ;[['On Track', onTrack, GREEN], ['At Risk', cnt('At Risk'), AMBER], ['Delayed', cnt('Delayed'), RED], ['Completed', completed, BLUE], ['On Hold', cnt('On Hold'), SLATE]].forEach((it, i) => {
+    const yy = r1 + 0.56 + i * 0.32
+    s.addShape(pptx.shapes.RECTANGLE, { x: gx[0] + 0.24, y: yy + 0.02, w: 0.15, h: 0.15, fill: { color: it[2] } })
+    s.addText(it[0], { x: gx[0] + 0.5, y: yy - 0.04, w: 2.0, h: 0.28, fontSize: 9.5, color: TXT, fontFace: FONT })
+    s.addText(`${it[1]} (${pctOf(it[1])}%)`, { x: gx[0] + colW - 1.4, y: yy - 0.04, w: 1.2, h: 0.28, fontSize: 9.5, bold: true, color: TXT, align: 'right', fontFace: FONT })
+  })
+
+  // Highlights
+  const hiLines = highlights.slice(0, 6).map(p => `${p.project_name} — ${(p.status === 'Completed' || numPct(p.percent_complete) >= 100) ? 'Completed' : numPct(p.percent_complete) + '%'}`)
+  listCard(gx[1], r1, `${currentMonth.toUpperCase()} HIGHLIGHTS`, hiLines, 'No highlights this month')
+
+  // Risks & Issues
+  const riskLines = allRisks.length
+    ? allRisks.slice(0, 6).map(r => `${pNameById[r.project_id] || '—'}${r.description ? ' — ' + String(r.description).slice(0, 55) : ''}`)
+    : projects.filter(p => ['Delayed', 'At Risk', 'On Hold'].includes(p.status)).slice(0, 6).map(p => `${p.project_name}${p.key_risks ? ' — ' + String(p.key_risks).slice(0, 55) : ' — ' + p.status}`)
+  listCard(gx[2], r1, 'RISKS & ISSUES', riskLines, 'No active risks')
+
+  // In Focus
+  const focusLines = focus.slice(0, 6).map(p => `${p.project_name} — ${numPct(p.percent_complete)}%`)
+  listCard(gx[0], r2, 'IN FOCUS', focusLines, 'Nothing in focus')
+
+  // Decisions Required
+  const decLines = decisions.slice(0, 6).map(p => `${p.project_name} — ${String(p.actions_needed).trim().slice(0, 55)}`)
+  listCard(gx[1], r2, 'DECISIONS REQUIRED', decLines, 'No pending decisions')
+
+  // New This Month
+  const mmKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const newThisMonth = projects.filter(p => p.start_date === mmKey)
+  const newLines = newThisMonth.slice(0, 6).map(p => `${p.project_name}${p.business_owner ? ' · ' + p.business_owner : ''}`)
+  listCard(gx[2], r2, 'NEW THIS MONTH', newLines, 'No new projects this month')
 
   pptx.writeFile({ fileName: `EBS_MBR_${currentMonth}_${currentYear}.pptx` })
 }
@@ -1019,29 +946,23 @@ function Layout() {
       </button>
     )}
 
-    {/* Theme toggle — its own button at top-left on mobile (separate from the
-        login/logout button on the right so the two are easy to tell apart) */}
-    {!isLanding && (
-      <button
-        onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-        className="lg:hidden fixed top-4 left-4 z-50 w-11 h-11 rounded-xl bg-surface-900 text-white shadow-lg hover:bg-surface-800 flex items-center justify-center transition-colors"
-        style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
-        title="Toggle theme" aria-label="Toggle theme"
-      >
-        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
-    )}
-
-    {/* Floating quick-icons (admin / logout / login) — top-right on all pages except landing */}
+    {/* Floating quick-icons — top-right. On mobile: theme toggle (+ admin's
+        Sign Out). Guest login is omitted on mobile since it's in the bottom dock. */}
     {!isLanding && (
       <div
         className="fixed top-4 right-4 z-50 flex items-center gap-1.5 bg-surface-900 rounded-2xl px-2 py-1.5 shadow-lg"
         style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
       >
+        {/* Theme toggle — mobile only (desktop has it in the sidebar) */}
+        <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors"
+          title="Toggle theme" aria-label="Toggle theme">
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         {isAdmin ? (
           <button onClick={signOut} className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors" title="Sign out"><LogOut size={18} /></button>
         ) : (
-          <Link to="/login" className="w-9 h-9 flex items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors" title="Admin login"><LogIn size={18} /></Link>
+          <Link to="/login" className="hidden lg:flex w-9 h-9 items-center justify-center rounded-xl text-surface-300 hover:text-white hover:bg-white/10 transition-colors" title="Admin login"><LogIn size={18} /></Link>
         )}
       </div>
     )}
@@ -1131,7 +1052,7 @@ function Layout() {
     </aside>
 
     {/* Main */}
-    <main id="main-scroll" className={`flex-1 overflow-y-auto pb-20 lg:pb-0 ${themeClass}`}>
+    <main id="main-scroll" className={`flex-1 overflow-y-auto ${isLanding ? '' : 'pb-20'} lg:pb-0 ${themeClass}`}>
 
       <div className={isLanding ? '' : 'px-4 pt-20 pb-8 sm:px-6 lg:px-8'}>
         <Routes>
