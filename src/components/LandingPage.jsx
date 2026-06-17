@@ -689,17 +689,39 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
   const hoverCountRef = useRef(0)
   const [videoFocused, setVideoFocused] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
-  // Nudge the hero video to play — Brave / iOS often block autoplay despite
-  // muted + playsInline, so we call play() on mount and retry on first touch.
+  // Keep the hero background video reliably playing on mobile. iOS/Brave block
+  // autoplay and aggressively evict the (large) dark clip when it scrolls out of
+  // view, so it comes back "unloaded". We force-mute, (re)play whenever the clip
+  // is ready or the hero is on screen, pause it off screen, and resume on the
+  // first interaction / tab refocus.
   useEffect(() => {
-    const play = () => document.querySelectorAll('.hero-video-dark, .hero-video-light').forEach(v => {
-      const p = v.play && v.play(); if (p && p.catch) p.catch(() => {})
-    })
-    play()
-    const once = () => { play(); window.removeEventListener('pointerdown', once); window.removeEventListener('touchstart', once) }
-    window.addEventListener('pointerdown', once, { once: true })
-    window.addEventListener('touchstart', once, { once: true })
-    return () => { window.removeEventListener('pointerdown', once); window.removeEventListener('touchstart', once) }
+    const vids = Array.from(document.querySelectorAll('.hero-video-dark, .hero-video-light'))
+    vids.forEach(v => { v.muted = true; v.defaultMuted = true })
+    const tryPlay = (v) => { try { const p = v.play(); if (p && p.catch) p.catch(() => {}) } catch {} }
+    const playAll = () => vids.forEach(tryPlay)
+    vids.forEach(v => v.addEventListener('canplay', () => tryPlay(v)))
+    playAll()
+    const t = setTimeout(playAll, 700)
+    // Replay when the hero re-enters the viewport (scroll back up); pause when it leaves.
+    const hero = document.querySelector('[data-hero]')
+    let io
+    if (hero && 'IntersectionObserver' in window) {
+      io = new IntersectionObserver(([e]) => {
+        if (e.isIntersecting) playAll()
+        else vids.forEach(v => { try { v.pause() } catch {} })
+      }, { threshold: 0.01 })
+      io.observe(hero)
+    }
+    const once = () => playAll()
+    const evs = ['pointerdown', 'touchstart', 'click']
+    evs.forEach(ev => window.addEventListener(ev, once, { once: true, passive: true }))
+    const onVis = () => { if (!document.hidden) playAll() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      clearTimeout(t); if (io) io.disconnect()
+      evs.forEach(ev => window.removeEventListener(ev, once))
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [])
   const onCardHover = useCallback(() => {
     hoverCountRef.current += 1
