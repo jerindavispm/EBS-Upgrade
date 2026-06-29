@@ -908,6 +908,26 @@ function Layout() {
   // its own (unlike .app-dark/.app-light which apply backgrounds + a
   // `> *` z-index helper that would break sibling fixed positioning).
   const themeMarker = `theme-${theme}`
+  // Ambient plum backdrop (public/Plumnew.png) for the dark theme. Resolved
+  // via the document URL so it works under HashRouter + relative base on
+  // both localhost and GitHub Pages. .app-dark layers a plum veil over it.
+  const appBgImage = `url("${new URL(import.meta.env.BASE_URL + 'Plumnew.png', window.location.href).href}")`
+
+  // Looping background video (DARK theme, desktop only) — a plum clip behind
+  // all non-landing pages; a plum veil over it keeps content legible, and the
+  // glass cards frost it. Light theme uses the clean Editorial look (no video).
+  const BG_VIDEO_DARK = 'Plumre2.mp4'
+  const bgVideoSrc = new URL(import.meta.env.BASE_URL + BG_VIDEO_DARK, window.location.href).href
+  const [isWideLayout, setIsWideLayout] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const onChange = () => setIsWideLayout(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  const showBgVideo = !isLanding && isWideLayout && theme === 'dark'
 
   // Persist theme choice
   useEffect(() => {
@@ -930,7 +950,7 @@ function Layout() {
   ]
   const isActive = (path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
 
-  return <div className={`flex h-screen overflow-hidden ${themeMarker}`}>
+  return <div className={`flex h-screen overflow-hidden ${themeMarker} ${theme === 'light' ? 'design-editorial' : ''}`}>
     {/* Backdrop — always present when sidebar is open (all screen sizes) */}
     {sidebarOpen && <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setSidebarOpen(false)} />}
 
@@ -967,8 +987,18 @@ function Layout() {
       </div>
     )}
 
-    {/* Gold frame overlay — root-level so fixed positioning works reliably */}
-    {!isLanding && theme === 'dark' && <div className="gold-frame-overlay" aria-hidden="true" />}
+    {/* Dashboard background video — fixed, behind everything, looping. The
+        plum veil keeps cards/text legible; glass cards refract it. */}
+    {showBgVideo && (
+      <div className="app-bg-video-layer" aria-hidden="true">
+        <video key={bgVideoSrc} className="app-bg-video" src={bgVideoSrc} autoPlay muted loop playsInline preload="auto" disablePictureInPicture tabIndex={-1} />
+        <div className="app-bg-video-veil" />
+      </div>
+    )}
+
+    {/* Gold frame overlay — root-level so fixed positioning works reliably.
+        Rendered in both themes; fill colour is theme-aware via CSS. */}
+    {!isLanding && <div className="gold-frame-overlay" aria-hidden="true" />}
 
     {/* Sidebar — always overlay, hidden by default on all screen sizes */}
     <aside className={`sidebar-luxe fixed z-40 h-full w-64 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -1052,7 +1082,7 @@ function Layout() {
     </aside>
 
     {/* Main */}
-    <main id="main-scroll" className={`flex-1 overflow-y-auto ${isLanding ? '' : 'pb-20'} lg:pb-0 ${themeClass}`}>
+    <main id="main-scroll" style={{ '--app-bg-image': appBgImage }} className={`flex-1 overflow-y-auto ${isLanding ? '' : 'pb-20'} lg:pb-0 ${themeClass} ${showBgVideo ? 'has-bg-video' : ''}`}>
 
       <div className={isLanding ? '' : 'px-4 pt-20 pb-8 sm:px-6 lg:px-8'}>
         <Routes>

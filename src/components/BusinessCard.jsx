@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'motion/react'
-import { X, MapPin, Mail, Phone, Copy, Check, Building2, User } from 'lucide-react'
+import { X, MapPin, Mail, Phone, Copy, Check, Building2, User, Globe } from 'lucide-react'
 
 // Luxe business card modal — gold/champagne port of the cursor-tilt card.
 // Backdrop fade + scale-in entrance, 3D mouse-tracking tilt, cursor-following
@@ -157,10 +157,9 @@ export default function BusinessCard({ open, onClose, lead }) {
                 {/* Aurora glows — gold pools */}
                 <div className="luxe-card-aurora-1 pointer-events-none absolute -top-24 -right-16 h-48 w-48 rounded-full blur-3xl" />
                 <div className="luxe-card-aurora-2 pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full blur-3xl" />
-                {/* Subtle border highlight */}
+                {/* Gold frame — outer rim + inner hairline (double border, per reference) */}
                 <div className="luxe-card-border pointer-events-none absolute inset-0 rounded-3xl" />
-                {/* Hairline gold grid */}
-                <div className="luxe-card-grid pointer-events-none absolute inset-0" />
+                <div className="luxe-card-frame pointer-events-none absolute inset-[9px] rounded-[18px]" />
 
                 <div className="relative">
                   {/* Top row: avatar + close */}
@@ -208,7 +207,7 @@ export default function BusinessCard({ open, onClose, lead }) {
 
                   {/* Footer pill — open-for-inquiries pulse + timezone */}
                   <div className="mt-7 flex items-center justify-between">
-                    <div className="luxe-card-available inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                    <div className="luxe-card-available inline-flex items-center gap-2.5 rounded-full px-5 py-2.5">
                       <span className="relative flex h-1.5 w-1.5">
                         <span className="luxe-card-pulse absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" />
                         <span className="luxe-card-pulse-dot relative inline-flex h-1.5 w-1.5 rounded-full" />
@@ -216,7 +215,7 @@ export default function BusinessCard({ open, onClose, lead }) {
                       Open to Inquiries
                     </div>
                     <div className="luxe-card-zone inline-flex items-center gap-1.5">
-                      <MapPin size={11} strokeWidth={1.6} />
+                      <Globe size={12} strokeWidth={1.7} />
                       KW · UTC+3
                     </div>
                   </div>

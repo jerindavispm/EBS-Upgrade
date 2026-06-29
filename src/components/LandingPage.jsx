@@ -924,7 +924,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
             the theme also switches the background footage. */}
         <video
           ref={videoRef}
-          src="./real2.mp4"
+          src="./real21.mp4"
           autoPlay
           muted
           loop
@@ -942,7 +942,7 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
           }}
         />
         <video
-          src="./mp41.mp4"
+          src="./mp410.mp4"
           autoPlay
           muted
           loop
@@ -1069,16 +1069,6 @@ export default function LandingPage({ isAdmin, theme, setTheme }) {
             style={{ background: 'radial-gradient(circle, rgba(202,161,90,0.22), transparent 65%)' }}
           />
         </div>
-
-        {/* Checked grid — champagne ruler lines (matches the luxe rim threads) */}
-        <div
-          className="absolute inset-0 opacity-[0.10]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(212,184,123,0.85) 1px, transparent 1px), linear-gradient(90deg, rgba(212,184,123,0.85) 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
 
         {/* Glassmorphism capability rail — 5 chips arranged at clock-hour
             positions 11, 10, 9, 8, 7 around the big EBS logo. The anchor
